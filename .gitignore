@@ -1,0 +1,19 @@
+# 環境変数
+.env
+.env.local
+
+# 認証情報
+credentials/
+
+# Node.js
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
