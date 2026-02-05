@@ -4,14 +4,13 @@
   "type": "module",
   "description": "Personal workspace mothership for task management",
   "scripts": {
-    "discord:notify": "bun run scripts/discord-notify.mjs",
-    "discord:test": "bun run scripts/discord-notify.mjs test",
-    "discord:summary": "bun run scripts/discord-notify.mjs summary"
+    "gcal": "bun run scripts/gcal-events.mjs",
+    "sheets": "bun run scripts/sheets-shift.mjs",
+    "discord": "bun run scripts/discord-notify.mjs",
+    "discord:test": "bun run scripts/discord-notify.mjs test"
   },
   "dependencies": {
-    "dotenv": "^16.4.0"
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
+    "dotenv": "^16.4.0",
+    "googleapis": "^130.0.0"
   }
 }

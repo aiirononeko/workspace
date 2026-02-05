@@ -11,19 +11,21 @@
 
 このワークスペースはMCP（Model Context Protocol）を使用して外部サービスと連携します。
 
-| サービス | MCP Server | 機能 |
-|----------|------------|------|
-| Linear | `https://mcp.linear.app/sse` | タスク管理（取得・作成・更新） |
-| Google Calendar | `@anthropic/mcp-google-calendar` | 予定の取得 |
-| Google Sheets | `@anthropic/mcp-google-sheets` | シフト情報の取得 |
+| サービス | MCP Server | 認証方式 | 機能 |
+|----------|------------|----------|------|
+| Linear | `mcp-remote` (SSE) | OAuth | タスク管理（取得・作成・更新） |
+| Google Calendar | `@cocal/google-calendar-mcp` | OAuth | 予定の取得（複数カレンダー対応） |
+| Google Sheets | `mcp-gsheets` | Service Account | シフト情報の取得 |
 
 ## 環境変数
 
-`.env`ファイルで管理（`.gitignore`に含まれる）。
+`.env`ファイルで管理（`.gitignore`に含まれる）。direnvで自動読み込み。
 
 必須:
-- `GOOGLE_SERVICE_ACCOUNT_PATH` - Service Account JSONパス
-- `GOOGLE_CALENDAR_ID` - カレンダーID
+- `GOOGLE_OAUTH_CREDENTIALS` - OAuth認証用JSONパス（Calendar用、絶対パス）
+- `GOOGLE_APPLICATION_CREDENTIALS` - Service Account JSONパス（Sheets用、絶対パス）
+- `GOOGLE_PROJECT_ID` - GCPプロジェクトID
+- `GOOGLE_CALENDAR_IDS` - カレンダーID（カンマ区切りで複数指定可）
 - `SHIFT_SPREADSHEET_ID` - シフトスプレッドシートID
 - `DISCORD_WEBHOOK_URL` - Discord Webhook URL
 
@@ -37,16 +39,22 @@ MCPを使って今日のタスク・予定・シフトを取得し一覧表示�
 ```
 workspace/
 ├── CLAUDE.md               # このファイル
-├── .env                    # 環境変数
+├── README.md               # セットアップ手順
+├── .mcp.json               # MCP設定（Git管理）
+├── .env                    # 環境変数（Git管理外）
+├── .envrc                  # direnv設定（Git管理外）
 ├── .claude/
-│   ├── settings.json       # MCP設定
 │   └── commands/today.md   # /todayコマンド
-├── credentials/            # Service Account等
+├── credentials/            # 認証情報（Git管理外）
+│   ├── oauth-credentials.json
+│   └── service-account.json
 └── scripts/
-    └── discord-notify.mjs  # Discord通知（MCPなし）
+    └── discord-notify.mjs  # Discord通知
 ```
 
 ## 注意事項
 
-> MCPでLinearを使う場合、初回はOAuth認証が必要です。
-> Google系サービスはService Account経由でアクセスします。
+- **Linear**: MCP経由でOAuth認証（初回のみブラウザ認証）
+- **Google Calendar**: OAuth認証が必要（個人カレンダーへのアクセス用）
+- **Google Sheets**: Service Account経由（シフト表は共有設定済み前提）
+- **環境変数**: direnvを使用。`direnv allow`で有効化

@@ -1,27 +1,28 @@
 {
     "mcpServers": {
         "linear": {
-            "url": "https://mcp.linear.app/sse"
+            "command": "npx",
+            "args": ["-y", "mcp-remote", "https://mcp.linear.app/sse"]
         },
         "google-calendar": {
             "command": "npx",
             "args": [
                 "-y",
-                "@anthropic/mcp-google-calendar"
+                "@cocal/google-calendar-mcp"
             ],
             "env": {
-                "GOOGLE_CALENDAR_ID": "${GOOGLE_CALENDAR_ID}",
-                "GOOGLE_SERVICE_ACCOUNT_PATH": "${GOOGLE_SERVICE_ACCOUNT_PATH}"
+                "GOOGLE_OAUTH_CREDENTIALS": "${GOOGLE_OAUTH_CREDENTIALS}"
             }
         },
         "google-sheets": {
             "command": "npx",
             "args": [
                 "-y",
-                "@anthropic/mcp-google-sheets"
+                "mcp-gsheets"
             ],
             "env": {
-                "GOOGLE_SERVICE_ACCOUNT_PATH": "${GOOGLE_SERVICE_ACCOUNT_PATH}"
+                "GOOGLE_APPLICATION_CREDENTIALS": "${GOOGLE_APPLICATION_CREDENTIALS}",
+                "GOOGLE_PROJECT_ID": "${GOOGLE_PROJECT_ID}"
             }
         }
     }
