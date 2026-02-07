@@ -16,6 +16,7 @@
 | Linear | `mcp-remote` (SSE) | OAuth | タスク管理（取得・作成・更新） |
 | Google Calendar | `@cocal/google-calendar-mcp` | OAuth | 予定の取得（複数カレンダー対応） |
 | Google Sheets | `mcp-gsheets` | Service Account | シフト情報の取得 |
+| microCMS | `microcms-mcp-server` | API Key | ブログ記事の作成・更新・公開 |
 
 ## 環境変数
 
@@ -28,11 +29,25 @@
 - `GOOGLE_CALENDAR_IDS` - カレンダーID（カンマ区切りで複数指定可）
 - `SHIFT_SPREADSHEET_ID` - シフトスプレッドシートID
 - `DISCORD_WEBHOOK_URL` - Discord Webhook URL
+- `MICROCMS_SERVICE_ID` - microCMSサービスID
+- `MICROCMS_API_KEY` - microCMS APIキー
 
 ## カスタムコマンド
 
 ### /today
 MCPを使って今日のタスク・予定・シフトを取得し一覧表示。対話形式で操作可能。
+
+### ブログ運営コマンド
+
+| コマンド | 用途 |
+|---------|------|
+| `/blog-research <トピック>` | キーワード調査・競合分析 |
+| `/blog-outline <キーワード>` | SEO最適化された記事構成を生成 |
+| `/blog-draft <構成の説明>` | microCMSに下書き記事を作成 |
+| `/blog-write <テーマ>` | 体験ベースの記事作成（アウトライン→ドラフト→レビュー一気通貫） |
+| `/blog-review <記事タイトル>` | 記事の品質チェック（100点満点） |
+| `/blog-publish <記事タイトル>` | 下書き記事を公開 |
+| `/blog-analyze` | 公開後分析（GSC設定後に本格稼働） |
 
 ## ディレクトリ構成
 
@@ -44,7 +59,16 @@ workspace/
 ├── .env                    # 環境変数（Git管理外）
 ├── .envrc                  # direnv設定（Git管理外）
 ├── .claude/
-│   └── commands/today.md   # /todayコマンド
+│   ├── commands/today.md   # /todayコマンド（レガシー）
+│   └── skills/             # Skillベースのコマンド群
+│       ├── today/          # 今日の状況確認
+│       ├── blog-research/  # キーワード調査
+│       ├── blog-outline/   # 記事構成
+│       ├── blog-draft/     # ドラフト作成（→microCMS）
+│       ├── blog-write/     # 体験ベース記事作成
+│       ├── blog-review/    # 品質チェック
+│       ├── blog-publish/   # 記事公開
+│       └── blog-analyze/   # 公開後分析（placeholder）
 ├── credentials/            # 認証情報（Git管理外）
 │   ├── oauth-credentials.json
 │   └── service-account.json
@@ -57,4 +81,5 @@ workspace/
 - **Linear**: MCP経由でOAuth認証（初回のみブラウザ認証）
 - **Google Calendar**: OAuth認証が必要（個人カレンダーへのアクセス用）
 - **Google Sheets**: Service Account経由（シフト表は共有設定済み前提）
+- **microCMS**: API Key認証（MCP経由で記事作成・更新・公開）
 - **環境変数**: direnvを使用。`direnv allow`で有効化

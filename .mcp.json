@@ -24,6 +24,14 @@
                 "GOOGLE_APPLICATION_CREDENTIALS": "${GOOGLE_APPLICATION_CREDENTIALS}",
                 "GOOGLE_PROJECT_ID": "${GOOGLE_PROJECT_ID}"
             }
+        },
+        "microcms": {
+            "command": "npx",
+            "args": ["-y", "microcms-mcp-server@latest"],
+            "env": {
+                "MICROCMS_SERVICE_ID": "${MICROCMS_SERVICE_ID}",
+                "MICROCMS_API_KEY": "${MICROCMS_API_KEY}"
+            }
         }
     }
 }
