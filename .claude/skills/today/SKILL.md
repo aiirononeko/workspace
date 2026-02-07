@@ -1,5 +1,9 @@
 ---
+name: today
 description: 今日のタスク・予定・シフトを確認
+user-invocable: true
+disable-model-invocation: true
+allowed-tools: Read, Bash, Grep, Glob, ToolSearch
 ---
 
 # 今日の状況を確認
