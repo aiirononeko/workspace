@@ -16,13 +16,16 @@ microCMSの下書き記事を公開ステータスに変更します。
 
 ### 1. microCMS MCPツールの準備
 
-ToolSearchで `microcms` を検索し、利用可能なツールを確認する。
+ToolSearchで以下を検索してロード:
+- `microcms get list` → `mcp__microcms__microcms_get_list`（一覧取得）
+- `microcms get content` → `mcp__microcms__microcms_get_content`（個別取得）
+- `microcms update` → `mcp__microcms__microcms_update_content_published`（公開）
 
 ### 2. 対象記事の確認
 
-1. コンテンツ一覧からAPIのエンドポイント名を把握
-2. 下書きステータスの記事を一覧取得
-3. 指定された記事を特定
+1. `mcp__microcms__microcms_get_list`（endpoint: `blogs`）で記事一覧を取得
+2. 指定された記事を特定（タイトルやキーワードで照合）
+3. `mcp__microcms__microcms_get_content`（endpoint: `blogs`, contentId: `...`）で本文を取得
 
 ### 3. 公開前チェックリスト
 
@@ -53,7 +56,15 @@ ToolSearchで `microcms` を検索し、利用可能なツールを確認する�
 
 ### 5. 公開実行
 
-ユーザーの承認後、microCMS MCPで記事のステータスを公開に変更する。
+ユーザーの承認後、`mcp__microcms__microcms_update_content_published` で公開:
+
+```
+endpoint: "blogs"
+contentId: "対象記事のID"
+content: {}  # 内容変更なしの場合は空オブジェクト
+```
+
+**注意**: APIキーにPATCH権限が必要。
 
 ### 6. 完了報告
 
