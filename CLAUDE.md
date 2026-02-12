@@ -45,8 +45,9 @@ MCPを使って今日のタスク・予定・シフトを取得し一覧表示�
 | `/blog-outline <キーワード>` | SEO最適化された記事構成を生成 |
 | `/blog-draft <構成の説明>` | microCMSに下書き記事を作成 |
 | `/blog-humanize <記事タイトル>` | AI臭除去 & カタダ文体変換 |
-| `/blog-write <テーマ>` | 体験ベースの記事作成（アウトライン→ドラフト→文体変換→レビュー一気通貫） |
-| `/blog-review <記事タイトル>` | 記事の品質チェック（AI臭チェック含む、100点満点） |
+| `/blog-polish <記事タイトル>` | ユーザー執筆記事の校正・清書 |
+| `/blog-write <テーマ>` | 体験ベースの記事作成（ヒアリング→骨格投稿→ユーザー執筆→校正→チームレビュー） |
+| `/blog-review <記事タイトル>` | 4人の専門家エージェントによるチームレビュー（100点満点） |
 | `/blog-publish <記事タイトル>` | 下書き記事を公開 |
 | `/blog-analyze` | 公開後分析（GSC設定後に本格稼働） |
 
@@ -67,7 +68,8 @@ workspace/
 │       ├── blog-outline/   # 記事構成
 │       ├── blog-draft/     # ドラフト作成（→microCMS）
 │       ├── blog-write/     # 体験ベース記事作成
-│       ├── blog-review/    # 品質チェック
+│       ├── blog-polish/    # 校正・清書
+│       ├── blog-review/    # チームレビュー
 │       ├── blog-publish/   # 記事公開
 │       └── blog-analyze/   # 公開後分析（placeholder）
 ├── credentials/            # 認証情報（Git管理外）
