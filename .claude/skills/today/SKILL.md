@@ -18,7 +18,41 @@ echo $SHIFT_SPREADSHEET_ID
 ```
 
 ### GitHub Projects
-- `gh project item-list 3 --owner aiirononeko --format json` でタスク一覧取得
+
+以下のGraphQLクエリでタスクのフィールド値（Status・Priority・Target date）を一括取得する:
+
+```bash
+gh api graphql -f query='
+{
+  user(login: "aiirononeko") {
+    projectV2(number: 3) {
+      items(first: 20) {
+        nodes {
+          id
+          content {
+            ... on DraftIssue { title body }
+          }
+          fieldValues(first: 20) {
+            nodes {
+              ... on ProjectV2ItemFieldSingleSelectValue {
+                name
+                field { ... on ProjectV2FieldCommon { name } }
+              }
+              ... on ProjectV2ItemFieldDateValue {
+                date
+                field { ... on ProjectV2FieldCommon { name } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+'
+```
+
+取得後、**Backlog・ReadyのタスクについてPriorityを再計算する**（後述）。
 
 ### Google Calendar
 - 認証確認: `mcp__google-calendar__manage-accounts` で `action: "list"` を実行
@@ -70,14 +104,60 @@ echo $SHIFT_SPREADSHEET_ID
 - インデックス6: 金曜日
 - インデックス7: 土曜日
 
+## 1.5 Priority自動再計算
+
+GraphQLで取得したタスク一覧のうち **Status が Backlog または Ready のもの** を対象に、以下のロジックでPriorityを再計算する。
+
+### 判定テーブル
+
+| 期限までの日数 | 第三者関与なし | 第三者関与あり |
+|--------------|-------------|-------------|
+| 0〜1日 | P0 | P0 |
+| 2〜7日 | P1 | P0 |
+| 8〜14日 | P2 | P1 |
+| 15日以上 / 期限なし | P2 | P2 |
+
+### 第三者関与キーワード（タイトル・本文で判定）
+
+シフト、シフト作成、スケジュール調整、日程、配置、割り当て、Ms.Engineer、副業、外部、クライアント、発注、依頼、確認依頼、承認、共有、報告、MTG、定例、ミーティング、会議
+
+### 再計算の実行手順
+
+1. 各タスクの「現在のPriority」と「計算結果のPriority」を比較する
+2. **差異があるタスクのみ** `gh project item-edit` でPriorityを更新する:
+   ```bash
+   gh project item-edit \
+     --id <item-id> \
+     --project-id PVT_kwHOAydZm84BQBr1 \
+     --field-id PVTSSF_lAHOAydZm84BQBr1zg-Q9bY \
+     --single-select-option-id <79628723=P0 / 0a877460=P1 / da944a9c=P2>
+   ```
+3. 変更があった場合は表示セクションの冒頭に通知する:
+   ```
+   🔄 Priority更新: 「タイトル」 P1 → P0（期限3日、シフト作成で昇格）
+   ```
+   変更がなければ通知不要。
+
 ## 2. 表示形式
 
 ### 📋 今日のタスク (GitHub Projects)
+**表示対象**: Status が **Ready または In progress** のタスクのみ。
+
 タスクがある場合:
 | ID | タイトル | ステータス | 期限 |
 |----|---------|-----------|------|
 
-タスクがない場合: "現在割り当てられているタスクはありません"
+タスクがない場合: "現在対応中・対応予定のタスクはありません"
+
+**⚠️ Backlog期日アラート**:
+Status が Backlog のタスクのうち、Target date が今日から7日以内（当日含む）のものがあれば、テーブルの直後に以下の形式で通知する:
+
+```
+⚠️ Backlog内に期日が迫っているタスクがあります:
+- 「タイトル」 期限: YYYY-MM-DD（あとX日）
+```
+
+期日が迫っているBacklogタスクがなければ通知不要。
 
 ### 📆 今日の予定 (Calendar)
 | 時間 | 予定 | カレンダー |
