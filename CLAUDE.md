@@ -13,7 +13,6 @@
 
 | サービス | MCP Server | 認証方式 | 機能 |
 |----------|------------|----------|------|
-| Linear | `mcp-remote` (SSE) | OAuth | タスク管理（取得・作成・更新） |
 | Google Calendar | `@cocal/google-calendar-mcp` | OAuth | 予定の取得（複数カレンダー対応） |
 | Google Sheets | `mcp-gsheets` | Service Account | シフト情報の取得 |
 | microCMS | `microcms-mcp-server` | API Key | ブログ記事の作成・更新・公開 |
@@ -35,7 +34,10 @@
 ## カスタムコマンド
 
 ### /today
-MCPを使って今日のタスク・予定・シフトを取得し一覧表示。対話形式で操作可能。
+GitHub Projects + Google Calendar + Google Sheetsを使って今日のタスク・予定・シフトを取得し一覧表示。対話形式で操作可能。
+
+### /github-task
+GitHub Projectsのタスクを対話的にCRUD操作するコマンド。
 
 ### ブログ運営コマンド
 
@@ -64,6 +66,7 @@ workspace/
 │   ├── commands/today.md   # /todayコマンド（レガシー）
 │   └── skills/             # Skillベースのコマンド群
 │       ├── today/          # 今日の状況確認
+│       ├── github-task/    # GitHub Projectsタスク操作
 │       ├── blog-research/  # キーワード調査
 │       ├── blog-outline/   # 記事構成
 │       ├── blog-draft/     # ドラフト作成（→microCMS）
@@ -81,7 +84,7 @@ workspace/
 
 ## 注意事項
 
-- **Linear**: MCP経由でOAuth認証（初回のみブラウザ認証）
+- **GitHub Projects**: `gh` CLI経由でアクセス（`read:project` スコープが必要）
 - **Google Calendar**: OAuth認証が必要（個人カレンダーへのアクセス用）
 - **Google Sheets**: Service Account経由（シフト表は共有設定済み前提）
 - **microCMS**: API Key認証（MCP経由で記事作成・更新・公開）

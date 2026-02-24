@@ -2,8 +2,7 @@
 name: today
 description: 今日のタスク・予定・シフトを確認
 user-invocable: true
-disable-model-invocation: true
-allowed-tools: Read, Bash, Grep, Glob, ToolSearch
+allowed-tools: Bash, ToolSearch, Read, Grep, Glob
 ---
 
 # 今日の状況を確認
@@ -18,8 +17,8 @@ echo $GOOGLE_CALENDAR_IDS
 echo $SHIFT_SPREADSHEET_ID
 ```
 
-### Linear
-- `mcp__linear__list_issues` で `assignee: "me"` を指定して取得
+### GitHub Projects
+- `gh project item-list 3 --owner aiirononeko --format json` でタスク一覧取得
 
 ### Google Calendar
 - 認証確認: `mcp__google-calendar__manage-accounts` で `action: "list"` を実行
@@ -73,10 +72,10 @@ echo $SHIFT_SPREADSHEET_ID
 
 ## 2. 表示形式
 
-### 📋 今日のタスク (Linear)
+### 📋 今日のタスク (GitHub Projects)
 タスクがある場合:
-| ID | タイトル | 優先度 | プロジェクト | 期限 |
-|----|---------|--------|-------------|------|
+| ID | タイトル | ステータス | 期限 |
+|----|---------|-----------|------|
 
 タスクがない場合: "現在割り当てられているタスクはありません"
 
@@ -111,11 +110,11 @@ echo $SHIFT_SPREADSHEET_ID
 
 表示後、以下の操作を提案:
 
-**Linear タスク操作**:
-- ✅ 完了にする
-- 📅 明日に持ち越し（due dateを更新）
+**GitHub Projects タスク操作**:
+- ✅ 完了にする（Doneに更新）
 - ➕ 新規タスク作成
 - 🔄 ステータス更新
+- 詳細な操作は `/github-task` を使用
 
 **Calendar予定操作**:
 - 📝 予定の詳細表示

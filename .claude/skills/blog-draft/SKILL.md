@@ -66,37 +66,30 @@ content: {
 - APIキーにPOST権限が必要（「POST is forbidden」エラー時はmicroCMS管理画面で権限追加）
 - `_create_content_draft` ツールを使えば自動的に下書きステータスになる（`status`フィールドの指定は不要）
 
-### 5. Linearタスク生成（プレースホルダー対応用）
+### 5. GitHub Projectsタスク生成（プレースホルダー対応用）
 
-ドラフト作成後、本文中のプレースホルダーを解析し、Linearに記事公開準備タスクを生成する。
+ドラフト作成後、本文中のプレースホルダーを解析し、GitHub Projectsに記事公開準備タスクを生成する。
 
-1. ToolSearchで `linear create issue` を検索し、`mcp__linear__create_issue` をロード
-2. 本文から `<!-- IMAGE: -->`, `<!-- YOUR_EXPERIENCE: -->`, `<!-- YOUR_DATA: -->`, `<!-- AFFILIATE: -->` を抽出
-3. 1つの親Issueとして作成:
+1. 本文から `<!-- IMAGE: -->`, `<!-- YOUR_EXPERIENCE: -->`, `<!-- YOUR_DATA: -->`, `<!-- AFFILIATE: -->` を抽出
+2. `gh` CLIでDraftアイテムとして作成:
+   ```bash
+   gh project item-create 3 --owner aiirononeko \
+     --title "[記事タイトル短縮] 記事公開準備" \
+     --body "## 対象記事
+   - **タイトル**: [記事タイトル]
+   - **microCMS管理画面**: https://aiirononeko.microcms.io/apis/blogs/{contentId}
+
+   ## 残りのプレースホルダー
+   - [ ] [種類] [箇所]: [説明]
+   ...
+
+   ## 次のアクション
+   1. microCMS管理画面で各プレースホルダーを編集
+   2. プレースホルダーコメントを削除し、実際のコンテンツに置換
+   3. 全プレースホルダー対応後、\`/blog-review\` で品質チェック
+   4. 問題なければ \`/blog-publish\` で公開"
    ```
-   team: "Aiirononeko-private"
-   title: "[記事タイトル短縮] 記事公開準備"
-   description: |
-     ## 対象記事
-     - **タイトル**: [記事タイトル]
-     - **microCMS管理画面**: https://aiirononeko.microcms.io/apis/blogs/{contentId}
-
-     ## 残りのプレースホルダー
-     - [ ] [種類] [箇所]: [説明]
-     - [ ] [種類] [箇所]: [説明]
-     ...
-
-     ## 次のアクション
-     1. microCMS管理画面で各プレースホルダーを編集
-     2. プレースホルダーコメントを削除し、実際のコンテンツに置換
-     3. 全プレースホルダー対応後、`/blog-review` で品質チェック
-     4. 問題なければ `/blog-publish` で公開
-   assignee: "me"
-   state: "Todo"
-   priority: 3
-   labels: ["ブログ"]
-   ```
-   **注意**: タイトルに絵文字は使わない
+   **注意**: タイトルに絵文字は使わない。`3` は `gh project list --owner aiirononeko` で確認する
 
 ### 6. 完了報告
 
@@ -106,7 +99,7 @@ content: {
 📝 **microCMS**: 下書きとして作成済み
 🔗 **管理画面**: https://aiirononeko.microcms.io/apis/blogs/{contentId}
 📏 **文字数**: 約X,XXX字
-🎫 **Linearタスク**: [Issue ID] - プレースホルダー対応
+🎫 **GitHub Projectsタスク**: 記事公開準備タスクを作成済み
 
 ### 要対応プレースホルダー
 
@@ -118,7 +111,7 @@ content: {
 
 ### 次のステップ
 
-1. Linearタスクのチェックリストに沿ってプレースホルダーを埋める
+1. GitHub Projectsのチェックリストに沿ってプレースホルダーを埋める
 2. `/blog-review` で品質チェック
 3. `/blog-publish` で公開
 ```

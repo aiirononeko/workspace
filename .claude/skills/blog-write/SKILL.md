@@ -147,33 +147,29 @@ microCMSへの骨格投稿後、以下をユーザーに提示する:
    ...
    ```
 
-### Linearタスク生成
+### GitHub Projectsタスク生成
 
-ToolSearchで `linear create issue` を検索し、`mcp__linear__create_issue` をロードして、執筆タスクを生成する。
+`gh` CLIでGitHub Projectsに執筆タスクを生成する。
 
+```bash
+gh project item-create 3 --owner aiirononeko \
+  --title "記事執筆: [記事タイトル]" \
+  --body "## 対象記事
+- **タイトル**: [記事タイトル]
+- **microCMS管理画面**: https://aiirononeko.microcms.io/apis/blogs/{contentId}
+
+## 執筆セクション
+- [ ] H2: [見出し1]（目安XXX字）
+- [ ] H2: [見出し2]（目安XXX字）
+- [ ] H2: [見出し3]（目安XXX字）
+...
+
+## 次のアクション
+1. microCMS管理画面で各セクションの \`<!-- USER_WRITE: ... -->\` を自分の文章に置換
+2. 全セクション執筆後、Claude Codeで「執筆完了」と伝える
+3. 校正（/blog-polish）→ チームレビュー（/blog-review）が自動実行される"
 ```
-team: "Aiirononeko-private"
-title: "記事執筆: [記事タイトル]"
-description: |
-  ## 対象記事
-  - **タイトル**: [記事タイトル]
-  - **microCMS管理画面**: https://aiirononeko.microcms.io/apis/blogs/{contentId}
-
-  ## 執筆セクション
-  - [ ] H2: [見出し1]（目安XXX字）
-  - [ ] H2: [見出し2]（目安XXX字）
-  - [ ] H2: [見出し3]（目安XXX字）
-  ...
-
-  ## 次のアクション
-  1. microCMS管理画面で各セクションの `<!-- USER_WRITE: ... -->` を自分の文章に置換
-  2. 全セクション執筆後、Claude Codeで「執筆完了」と伝える
-  3. 校正（/blog-polish）→ チームレビュー（/blog-review）が自動実行される
-assignee: "me"
-state: "Todo"
-priority: 3
-labels: ["ブログ"]
-```
+**注意**: `3` は `gh project list --owner aiirononeko` で確認する
 
 ### 待機
 
@@ -219,7 +215,7 @@ args: "<記事タイトル>"
     │
     ├─ Phase 2: アウトライン提示 → ユーザー承認 → microCMSに骨格投稿
     │
-    ├─ Phase 3: ユーザー執筆待ち（ガイダンス提示 + Linearタスク生成）
+    ├─ Phase 3: ユーザー執筆待ち（ガイダンス提示 + GitHub Projectsタスク生成）
     │       │
     │       └─ ユーザーが「執筆完了」と伝える
     │

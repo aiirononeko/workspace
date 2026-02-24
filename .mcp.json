@@ -1,9 +1,5 @@
 {
     "mcpServers": {
-        "linear": {
-            "command": "npx",
-            "args": ["-y", "mcp-remote", "https://mcp.linear.app/sse"]
-        },
         "google-calendar": {
             "command": "npx",
             "args": [
