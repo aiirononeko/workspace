@@ -5,6 +5,7 @@ import { data as taskCommand, execute as taskExecute } from "./commands/task";
 import { data as summarizeCommand, execute as summarizeExecute } from "./commands/summarize";
 import { data as saveCommand, execute as saveExecute } from "./commands/save";
 import { handleBookmarkMessage, handleBookmarkMessageUpdate } from "./bookmark-watcher";
+import { handleObsidianButton, handleSkillDraftButton } from "./button-handler";
 
 const commands = [askCommand, taskCommand, summarizeCommand, saveCommand];
 
@@ -38,6 +39,30 @@ client.once("clientReady", (c) => {
 });
 
 client.on("interactionCreate", async (interaction) => {
+  // ボタンインタラクション処理
+  if (interaction.isButton()) {
+    const customId = interaction.customId;
+    try {
+      if (customId.startsWith("knowledge:obsidian:")) {
+        await handleObsidianButton(interaction);
+      } else if (customId.startsWith("knowledge:skill:")) {
+        await handleSkillDraftButton(interaction);
+      }
+    } catch (err) {
+      console.error("Button handler failed:", err);
+      try {
+        if (interaction.deferred || interaction.replied) {
+          await interaction.editReply("ボタン処理中にエラーが発生しました。");
+        } else {
+          await interaction.reply({ content: "ボタン処理中にエラーが発生しました。", ephemeral: true });
+        }
+      } catch {
+        // reply itself failed
+      }
+    }
+    return;
+  }
+
   if (!interaction.isChatInputCommand()) return;
 
   const handler = handlers[interaction.commandName];

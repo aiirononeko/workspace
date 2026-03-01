@@ -60,6 +60,87 @@ function toISOWithOffset(date: Date): string {
   );
 }
 
+export interface SaveToObsidianOptions {
+  title: string;
+  content: string;
+  tags?: string[];
+  folder?: string;
+  source?: string;
+  sourceType?: string;
+  summary?: string;
+  sourceUrl?: string;
+}
+
+export interface SaveResult {
+  success: boolean;
+  filePath?: string;
+  relativePath?: string;
+  error?: string;
+}
+
+export function saveToObsidian(options: SaveToObsidianOptions): SaveResult {
+  const vaultPath = config.obsidianVaultPath;
+  if (!vaultPath) {
+    return { success: false, error: "OBSIDIAN_VAULT_PATH が設定されていません" };
+  }
+
+  const {
+    title, content, tags = [], folder = "Inbox",
+    source = "discord", sourceType, summary, sourceUrl,
+  } = options;
+
+  const vaultRoot = resolve(vaultPath);
+  const dirPath = resolve(vaultRoot, folder);
+  const rel = relative(vaultRoot, dirPath);
+  if (rel.startsWith("..") || isAbsolute(rel)) {
+    return { success: false, error: "保存先フォルダが不正です" };
+  }
+
+  const now = new Date();
+  const timestamp = formatTimestamp(now);
+  const slug = toSlug(title);
+  const fileName = `${timestamp}-${slug}.md`;
+
+  const tagsYaml =
+    tags.length > 0
+      ? `tags: [${tags.join(", ")}]`
+      : "tags: []";
+
+  const frontmatterLines = [
+    "---",
+    `title: "${title.replace(/"/g, '\\"')}"`,
+    `date: "${toISOWithOffset(now)}"`,
+    tagsYaml,
+    `source: ${source}`,
+  ];
+
+  if (sourceType) {
+    frontmatterLines.push(`source_type: ${sourceType}`);
+  }
+  if (sourceUrl) {
+    frontmatterLines.push(`url: "${sourceUrl}"`);
+  }
+  if (summary) {
+    frontmatterLines.push(`summary: "${summary.replace(/"/g, '\\"').replace(/\n/g, " ")}"`);
+  }
+  frontmatterLines.push(`status: fleeting`);
+  frontmatterLines.push("---");
+
+  const markdown = frontmatterLines.join("\n") + "\n\n" + content + "\n";
+
+  const filePath = join(dirPath, fileName);
+
+  try {
+    mkdirSync(dirPath, { recursive: true });
+    writeFileSync(filePath, markdown, "utf-8");
+    return { success: true, filePath, relativePath: `${folder}/${fileName}` };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "不明なエラーが発生しました";
+    return { success: false, error: message };
+  }
+}
+
 export async function execute(interaction: ChatInputCommandInteraction) {
   if (!isAllowed(interaction)) {
     await interaction.reply({
@@ -77,8 +158,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  const vaultPath = config.obsidianVaultPath;
-  if (!vaultPath) {
+  if (!config.obsidianVaultPath) {
     await interaction.reply({
       content: "エラー: OBSIDIAN_VAULT_PATH が設定されていません。",
       ephemeral: true,
@@ -91,56 +171,19 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const tagsRaw = interaction.options.getString("tags");
   const folderInput = interaction.options.getString("folder") || "Inbox";
 
-  // パストラバーサル防止
-  const vaultRoot = resolve(vaultPath);
-  const dirPath = resolve(vaultRoot, folderInput);
-  const rel = relative(vaultRoot, dirPath);
-  if (rel.startsWith("..") || isAbsolute(rel)) {
-    await interaction.reply({
-      content: "保存先フォルダが不正です。",
-      ephemeral: true,
-    });
-    return;
-  }
-
   const tags = tagsRaw
-    ? tagsRaw.split(",").map((t) => t.trim()).filter(Boolean)
+    ? tagsRaw.split(",").map((t: string) => t.trim()).filter(Boolean)
     : [];
 
-  const now = new Date();
-  const timestamp = formatTimestamp(now);
-  const slug = toSlug(title);
-  const fileName = `${timestamp}-${slug}.md`;
+  const result = saveToObsidian({ title, content, tags, folder: folderInput });
 
-  const tagsYaml =
-    tags.length > 0
-      ? `tags: [${tags.join(", ")}]`
-      : "tags: []";
-
-  const markdown = `---
-title: "${title}"
-date: "${toISOWithOffset(now)}"
-${tagsYaml}
-source: discord
----
-
-${content}
-`;
-
-  const filePath = join(dirPath, fileName);
-
-  try {
-    mkdirSync(dirPath, { recursive: true });
-    writeFileSync(filePath, markdown, "utf-8");
-
+  if (result.success) {
     await interaction.reply({
-      content: `保存しました: \`${folderInput}/${fileName}\``,
+      content: `保存しました: \`${result.relativePath}\``,
     });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "不明なエラーが発生しました";
+  } else {
     await interaction.reply({
-      content: `保存に失敗しました: ${message}`,
+      content: `保存に失敗しました: ${result.error}`,
       ephemeral: true,
     });
   }

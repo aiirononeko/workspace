@@ -1,6 +1,14 @@
-import type { Message } from "discord.js";
+import {
+  type Message,
+  type ThreadChannel,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} from "discord.js";
 import { config } from "./config";
 import { validateUrl, fetchAndSummarize, fetchTitle, summarizeFromEmbed } from "./summarize";
+import { analyzeForKnowledge, buildProposalMessage, type EmbedMetadata } from "./knowledge-proposer";
+import { cacheAnalysis } from "./button-handler";
 
 const URL_REGEX = /https?:\/\/[^\s<>)"']+/g;
 
@@ -12,6 +20,54 @@ function isXUrl(url: string): boolean {
     return X_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`));
   } catch {
     return false;
+  }
+}
+
+async function proposeKnowledge(thread: ThreadChannel, summary: string, url: string, embedMeta?: EmbedMetadata): Promise<void> {
+  try {
+    const analysis = await analyzeForKnowledge(summary, url, embedMeta);
+
+    // ナレッジとして無関係と判定された場合はスキップ
+    if (!analysis.relevant) {
+      console.log(`[bookmark-watcher] Skipping knowledge proposal (not relevant): ${url}`);
+      return;
+    }
+
+    // キャッシュに保存
+    cacheAnalysis(thread.id, analysis, summary, url, embedMeta);
+
+    const buttons: ButtonBuilder[] = [];
+
+    if (analysis.type === "obsidian" || analysis.type === "both") {
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId(`knowledge:obsidian:${thread.id}`)
+          .setLabel("Obsidianに保存")
+          .setEmoji("📚")
+          .setStyle(ButtonStyle.Primary),
+      );
+    }
+
+    if (analysis.type === "skill" || analysis.type === "both") {
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId(`knowledge:skill:${thread.id}`)
+          .setLabel("Skill化ドラフト作成")
+          .setEmoji("⚡")
+          .setStyle(ButtonStyle.Secondary),
+      );
+    }
+
+    if (buttons.length === 0) return;
+
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons);
+
+    await thread.send({
+      content: buildProposalMessage(analysis),
+      components: [row],
+    });
+  } catch (error) {
+    console.error("[bookmark-watcher] Knowledge proposal failed:", error);
   }
 }
 
@@ -51,6 +107,9 @@ export async function handleBookmarkMessage(message: Message): Promise<void> {
       } else {
         await thread.send(summary.slice(0, 1997) + "...");
       }
+
+      // ナレッジ提案
+      await proposeKnowledge(thread, summary, url);
     } catch (error) {
       console.error(`[bookmark-watcher] Failed to summarize ${url}:`, error);
     }
@@ -108,11 +167,15 @@ export async function handleBookmarkMessageUpdate(message: Message): Promise<voi
       const thread = await message.startThread({ name: threadName });
       await thread.sendTyping();
 
-      const summary = await summarizeFromEmbed({
-        url,
+      const embedMeta: EmbedMetadata = {
         author: embed.author?.name ?? undefined,
         description: embed.description ?? undefined,
         title: embed.title ?? undefined,
+      };
+
+      const summary = await summarizeFromEmbed({
+        url,
+        ...embedMeta,
       });
 
       if (summary.length <= 2000) {
@@ -120,6 +183,9 @@ export async function handleBookmarkMessageUpdate(message: Message): Promise<voi
       } else {
         await thread.send(summary.slice(0, 1997) + "...");
       }
+
+      // ナレッジ提案（embed原文メタデータも渡す）
+      await proposeKnowledge(thread, summary, url, embedMeta);
     } catch (error) {
       console.error(`[bookmark-watcher] Failed to summarize X embed ${url}:`, error);
     }
