@@ -4,7 +4,7 @@ import { data as askCommand, execute as askExecute } from "./commands/ask";
 import { data as taskCommand, execute as taskExecute } from "./commands/task";
 import { data as summarizeCommand, execute as summarizeExecute } from "./commands/summarize";
 import { data as saveCommand, execute as saveExecute } from "./commands/save";
-import { handleBookmarkMessage } from "./bookmark-watcher";
+import { handleBookmarkMessage, handleBookmarkMessageUpdate } from "./bookmark-watcher";
 
 const commands = [askCommand, taskCommand, summarizeCommand, saveCommand];
 
@@ -65,6 +65,15 @@ client.on("messageCreate", async (message) => {
     await handleBookmarkMessage(message);
   } catch (err) {
     console.error("[bookmark-watcher] Unhandled error:", err);
+  }
+});
+
+client.on("messageUpdate", async (_old, newMsg) => {
+  try {
+    const message = newMsg.partial ? await newMsg.fetch() : newMsg;
+    await handleBookmarkMessageUpdate(message);
+  } catch (err) {
+    console.error("[bookmark-watcher] Update handler error:", err);
   }
 });
 

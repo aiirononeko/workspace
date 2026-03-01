@@ -112,6 +112,26 @@ export async function fetchAndSummarize(url: string): Promise<string> {
   return runClaude(prompt);
 }
 
+export async function summarizeFromEmbed(embedData: {
+  url: string;
+  author?: string;
+  description?: string;
+  title?: string;
+}): Promise<string> {
+  const parts: string[] = [];
+  if (embedData.author) parts.push(`投稿者: ${embedData.author}`);
+  if (embedData.title) parts.push(`タイトル: ${embedData.title}`);
+  if (embedData.description) parts.push(`本文: ${embedData.description}`);
+
+  if (parts.length === 0) {
+    throw new Error("Embed情報が不十分です");
+  }
+
+  const text = parts.join("\n");
+  const prompt = `以下のX(Twitter)ポストの内容を日本語で簡潔に要約してください。\n\nURL: ${embedData.url}\n\n${text}`;
+  return runClaude(prompt);
+}
+
 export async function fetchTitle(url: string): Promise<string | null> {
   try {
     const response = await fetch(url, {
