@@ -1,0 +1,2 @@
+-- This is a reference copy. Run supabase/migrations/001_initial.sql for actual migration.
+-- See supabase/migrations/001_initial.sql
