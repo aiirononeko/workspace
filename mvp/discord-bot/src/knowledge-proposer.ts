@@ -121,6 +121,14 @@ export interface EmbedMetadata {
   title?: string;
 }
 
+export function toEmbedMetadata(embed: { author?: { name?: string } | null; description?: string | null; title?: string | null }): EmbedMetadata {
+  return {
+    author: embed.author?.name ?? undefined,
+    description: embed.description ?? undefined,
+    title: embed.title ?? undefined,
+  };
+}
+
 export async function analyzeForKnowledge(
   summary: string,
   url: string,

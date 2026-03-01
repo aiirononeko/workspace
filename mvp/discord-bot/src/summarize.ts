@@ -4,6 +4,27 @@ const MAX_TEXT_LENGTH = 50000;
 const FETCH_TIMEOUT_MS = 10000;
 const MAX_HTML_BYTES = 2 * 1024 * 1024;
 
+export const URL_REGEX = /https?:\/\/[^\s<>)"']+/g;
+
+export const X_DOMAINS = ["x.com", "twitter.com", "fxtwitter.com", "vxtwitter.com"];
+
+export function isXUrl(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, "");
+    return X_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`));
+  } catch {
+    return false;
+  }
+}
+
+const DEFAULT_FETCH_OPTIONS: RequestInit = {
+  headers: {
+    "User-Agent": "Mozilla/5.0 (compatible; DiscordBot/1.0)",
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  },
+  redirect: "follow",
+};
+
 function isBlockedHost(hostname: string): boolean {
   const h = hostname.toLowerCase();
   if (h === "localhost" || h.endsWith(".local")) return true;
@@ -70,12 +91,8 @@ export function extractTitle(html: string): string | null {
 
 export async function fetchAndSummarize(url: string): Promise<string> {
   const response = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; DiscordBot/1.0)",
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    },
+    ...DEFAULT_FETCH_OPTIONS,
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    redirect: "follow",
   });
 
   if (!response.ok) {
@@ -135,12 +152,8 @@ export async function summarizeFromEmbed(embedData: {
 export async function fetchTitle(url: string): Promise<string | null> {
   try {
     const response = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; DiscordBot/1.0)",
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      },
+      ...DEFAULT_FETCH_OPTIONS,
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      redirect: "follow",
     });
 
     if (!response.ok) return null;

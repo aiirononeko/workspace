@@ -30,3 +30,15 @@ export function checkRateLimit(userId: string): boolean {
   timestamps.set(userId, recent);
   return true;
 }
+
+export async function enforceGuards(interaction: ChatInputCommandInteraction): Promise<boolean> {
+  if (!isAllowed(interaction)) {
+    await interaction.reply({ content: "このコマンドを使用する権限がありません。", ephemeral: true });
+    return false;
+  }
+  if (!checkRateLimit(interaction.user.id)) {
+    await interaction.reply({ content: "レート制限中です。1分後に再試行してください。", ephemeral: true });
+    return false;
+  }
+  return true;
+}

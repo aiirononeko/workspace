@@ -2,10 +2,10 @@ import type { ButtonInteraction, Message, ThreadChannel } from "discord.js";
 import { saveToObsidian } from "./commands/save";
 import { runClaude } from "./claude";
 import { config } from "./config";
-import { analyzeForKnowledge, type KnowledgeAnalysis, type EmbedMetadata } from "./knowledge-proposer";
+import { analyzeForKnowledge, toEmbedMetadata, type KnowledgeAnalysis, type EmbedMetadata } from "./knowledge-proposer";
+import { URL_REGEX, X_DOMAINS, isXUrl } from "./summarize";
 import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
-import { execSync } from "child_process";
 
 interface CachedAnalysis {
   analysis: KnowledgeAnalysis;
@@ -18,6 +18,14 @@ interface CachedAnalysis {
 const analysisCache = new Map<string, CachedAnalysis & { expiresAt: number }>();
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1時間
+
+// 期限切れキャッシュの定期クリーンアップ（15分ごと）
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of analysisCache) {
+    if (now > value.expiresAt) analysisCache.delete(key);
+  }
+}, 15 * 60 * 1000);
 
 export function cacheAnalysis(threadId: string, analysis: KnowledgeAnalysis, summary: string, url: string, embedMeta?: EmbedMetadata): void {
   analysisCache.set(threadId, {
@@ -37,25 +45,6 @@ function getCachedAnalysis(threadId: string): CachedAnalysis | null {
     return null;
   }
   return cached;
-}
-
-const URL_REGEX = /https?:\/\/[^\s<>)"']+/g;
-
-/**
- * キャッシュミス時にスレッドのメッセージから分析結果を復旧する
- * - 親メッセージからURLを取得
- * - ボットの最初のメッセージからサマリを取得
- * - 再分析してキャッシュに保存
- */
-const X_DOMAINS = ["x.com", "twitter.com", "fxtwitter.com", "vxtwitter.com"];
-
-function isXUrl(url: string): boolean {
-  try {
-    const hostname = new URL(url).hostname.replace(/^www\./, "");
-    return X_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`));
-  } catch {
-    return false;
-  }
 }
 
 async function recoverFromThread(
@@ -88,11 +77,7 @@ async function recoverFromThread(
         }
       });
       if (embed && (embed.description || embed.title)) {
-        embedMeta = {
-          author: embed.author?.name ?? undefined,
-          description: embed.description ?? undefined,
-          title: embed.title ?? undefined,
-        };
+        embedMeta = toEmbedMetadata(embed);
       }
     }
 
@@ -206,8 +191,19 @@ function toSkillSlug(name: string): string {
     .slice(0, 50);
 }
 
-function git(args: string, cwd: string): string {
-  return execSync(`git ${args}`, { cwd, encoding: "utf-8", timeout: 30_000 }).trim();
+async function runCommand(command: string[], cwd: string): Promise<string> {
+  const proc = Bun.spawn(command, { cwd, stdout: "pipe", stderr: "pipe" });
+  const stdout = await new Response(proc.stdout).text();
+  const stderr = await new Response(proc.stderr).text();
+  const exitCode = await proc.exited;
+  if (exitCode !== 0) {
+    throw new Error(`Command failed: ${command.join(" ")}\n${stderr.trim()}`);
+  }
+  return stdout.trim();
+}
+
+async function git(args: string[], cwd: string): Promise<string> {
+  return runCommand(["git", ...args], cwd);
 }
 
 export async function handleSkillDraftButton(interaction: ButtonInteraction): Promise<void> {
@@ -282,22 +278,22 @@ Markdownのみを出力してください。`;
     const absSkillDir = join(workspaceDir, skillDir);
 
     // ブランチ作成 → ファイル追加 → コミット → プッシュ → PR作成
-    const originalBranch = git("rev-parse --abbrev-ref HEAD", workspaceDir);
+    const originalBranch = await git(["rev-parse", "--abbrev-ref", "HEAD"], workspaceDir);
 
     try {
       // ブランチ作成・切り替え
-      git(`checkout -b ${branchName}`, workspaceDir);
+      await git(["checkout", "-b", branchName], workspaceDir);
 
       // スキルファイル作成
       mkdirSync(absSkillDir, { recursive: true });
       writeFileSync(join(workspaceDir, skillFilePath), skillContent, "utf-8");
 
       // コミット
-      git(`add ${skillFilePath}`, workspaceDir);
-      git(`commit -m "feat: add ${skillSlug} skill draft"`, workspaceDir);
+      await git(["add", skillFilePath], workspaceDir);
+      await git(["commit", "-m", `feat: add ${skillSlug} skill draft`], workspaceDir);
 
       // プッシュ
-      git(`push -u origin ${branchName}`, workspaceDir);
+      await git(["push", "-u", "origin", branchName], workspaceDir);
 
       // PR作成
       const prBody = [
@@ -316,10 +312,10 @@ Markdownのみを出力してください。`;
         "🤖 Discord bookmark-watcher から自動生成",
       ].join("\n");
 
-      const prResult = execSync(
-        `gh pr create --title "feat: add ${skillSlug} skill" --body "${prBody.replace(/"/g, '\\"')}" --base main`,
-        { cwd: workspaceDir, encoding: "utf-8", timeout: 30_000 },
-      ).trim();
+      const prResult = await runCommand(
+        ["gh", "pr", "create", "--title", `feat: add ${skillSlug} skill`, "--body", prBody, "--base", "main"],
+        workspaceDir,
+      );
 
       // PR URLを抽出
       const prUrl = prResult.match(/https:\/\/github\.com\/.+\/pull\/\d+/)?.[0] || prResult;
@@ -347,7 +343,7 @@ Markdownのみを出力してください。`;
     } finally {
       // 元のブランチに戻す
       try {
-        git(`checkout ${originalBranch}`, workspaceDir);
+        await git(["checkout", originalBranch], workspaceDir);
       } catch {
         // チェックアウト失敗時は無視（既に元ブランチの可能性）
       }

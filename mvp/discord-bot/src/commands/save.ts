@@ -2,7 +2,7 @@ import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from "discord.js";
-import { isAllowed, checkRateLimit } from "../guard";
+import { enforceGuards } from "../guard";
 import { config } from "../config";
 import { mkdirSync, writeFileSync } from "fs";
 import { join, resolve, relative, isAbsolute } from "path";
@@ -142,21 +142,7 @@ export function saveToObsidian(options: SaveToObsidianOptions): SaveResult {
 }
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  if (!isAllowed(interaction)) {
-    await interaction.reply({
-      content: "このコマンドを使用する権限がありません。",
-      ephemeral: true,
-    });
-    return;
-  }
-
-  if (!checkRateLimit(interaction.user.id)) {
-    await interaction.reply({
-      content: "レート制限中です。1分後に再試行してください。",
-      ephemeral: true,
-    });
-    return;
-  }
+  if (!(await enforceGuards(interaction))) return;
 
   if (!config.obsidianVaultPath) {
     await interaction.reply({

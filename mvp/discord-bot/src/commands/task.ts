@@ -2,7 +2,7 @@ import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from "discord.js";
-import { isAllowed, checkRateLimit } from "../guard";
+import { enforceGuards } from "../guard";
 
 const PROJECT_NUMBER = "3";
 const PROJECT_ID = "PVT_kwHOAydZm84BQBr1";
@@ -71,21 +71,7 @@ async function runGh(args: string[]): Promise<string> {
 }
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  if (!isAllowed(interaction)) {
-    await interaction.reply({
-      content: "このコマンドを使用する権限がありません。",
-      ephemeral: true,
-    });
-    return;
-  }
-
-  if (!checkRateLimit(interaction.user.id)) {
-    await interaction.reply({
-      content: "レート制限中です。1分後に再試行してください。",
-      ephemeral: true,
-    });
-    return;
-  }
+  if (!(await enforceGuards(interaction))) return;
 
   const title = interaction.options.getString("title", true);
   const description = interaction.options.getString("description") ?? "";
@@ -133,54 +119,45 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       throw new Error("アイテムIDの取得に失敗しました");
     }
 
-    // 2. Set status
+    // 2-4. Set status, target date, assignee in parallel
+    const fieldUpdates: Promise<string>[] = [];
+
     const statusOptionId = STATUS_OPTIONS[status];
     if (statusOptionId) {
-      await runGh([
-        "project",
-        "item-edit",
-        "--id",
-        itemId,
-        "--project-id",
-        PROJECT_ID,
-        "--field-id",
-        STATUS_FIELD_ID,
-        "--single-select-option-id",
-        statusOptionId,
-      ]);
+      fieldUpdates.push(runGh([
+        "project", "item-edit",
+        "--id", itemId,
+        "--project-id", PROJECT_ID,
+        "--field-id", STATUS_FIELD_ID,
+        "--single-select-option-id", statusOptionId,
+      ]));
     }
 
-    // 3. Set target date if specified
     if (targetDate) {
-      await runGh([
-        "project",
-        "item-edit",
-        "--id",
-        itemId,
-        "--project-id",
-        PROJECT_ID,
-        "--field-id",
-        TARGET_DATE_FIELD_ID,
-        "--date",
-        targetDate,
-      ]);
+      fieldUpdates.push(runGh([
+        "project", "item-edit",
+        "--id", itemId,
+        "--project-id", PROJECT_ID,
+        "--field-id", TARGET_DATE_FIELD_ID,
+        "--date", targetDate,
+      ]));
     }
 
-    // 4. Set assignee via GraphQL
     if (draftIssueId) {
       const mutation = `mutation($draftIssueId: ID!, $assigneeIds: [ID!]!) {
   updateProjectV2DraftIssue(input: {draftIssueId: $draftIssueId, assigneeIds: $assigneeIds}) {
     draftIssue { id }
   }
 }`;
-
-      await runGh([
+      fieldUpdates.push(runGh([
         "api", "graphql",
         "-f", `query=${mutation}`,
         "-F", `draftIssueId=${draftIssueId}`,
         "-F", `assigneeIds[]=${ASSIGNEE_NODE_ID}`,
-      ]);
+      ]));
     }
+
+    await Promise.all(fieldUpdates);
 
     // Build response message
     const parts = [

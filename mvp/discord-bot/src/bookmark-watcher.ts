@@ -6,22 +6,9 @@ import {
   ButtonStyle,
 } from "discord.js";
 import { config } from "./config";
-import { validateUrl, fetchAndSummarize, fetchTitle, summarizeFromEmbed } from "./summarize";
-import { analyzeForKnowledge, buildProposalMessage, type EmbedMetadata } from "./knowledge-proposer";
+import { validateUrl, fetchAndSummarize, fetchTitle, summarizeFromEmbed, URL_REGEX, X_DOMAINS, isXUrl } from "./summarize";
+import { analyzeForKnowledge, buildProposalMessage, toEmbedMetadata, type EmbedMetadata } from "./knowledge-proposer";
 import { cacheAnalysis } from "./button-handler";
-
-const URL_REGEX = /https?:\/\/[^\s<>)"']+/g;
-
-const X_DOMAINS = ["x.com", "twitter.com", "fxtwitter.com", "vxtwitter.com"];
-
-function isXUrl(url: string): boolean {
-  try {
-    const hostname = new URL(url).hostname.replace(/^www\./, "");
-    return X_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`));
-  } catch {
-    return false;
-  }
-}
 
 async function proposeKnowledge(thread: ThreadChannel, summary: string, url: string, embedMeta?: EmbedMetadata): Promise<void> {
   try {
@@ -167,11 +154,7 @@ export async function handleBookmarkMessageUpdate(message: Message): Promise<voi
       const thread = await message.startThread({ name: threadName });
       await thread.sendTyping();
 
-      const embedMeta: EmbedMetadata = {
-        author: embed.author?.name ?? undefined,
-        description: embed.description ?? undefined,
-        title: embed.title ?? undefined,
-      };
+      const embedMeta = toEmbedMetadata(embed);
 
       const summary = await summarizeFromEmbed({
         url,
