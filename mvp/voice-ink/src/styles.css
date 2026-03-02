@@ -1,0 +1,294 @@
+:root {
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+
+  color: #0f0f0f;
+  background-color: #f6f6f6;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+header {
+  margin-bottom: 2rem;
+}
+
+header h1 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+nav {
+  display: flex;
+  gap: 0.5rem;
+}
+
+nav button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+nav button.active {
+  background: #0f0f0f;
+  color: white;
+  border-color: #0f0f0f;
+}
+
+/* Home */
+.home {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #999;
+}
+
+.status-dot.ready {
+  background: #22c55e;
+}
+
+.status-dot.recording {
+  background: #ef4444;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.status {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.recording-area {
+  margin: 2rem 0;
+}
+
+.record-button {
+  padding: 1rem 2.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  border: 2px solid #0f0f0f;
+  border-radius: 9999px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.record-button:hover:not(:disabled) {
+  background: #0f0f0f;
+  color: white;
+}
+
+.record-button.active {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: white;
+}
+
+.record-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.warning {
+  color: #f59e0b;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #fef3c7;
+  border-radius: 4px;
+}
+
+.error {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #fef2f2;
+  border-radius: 4px;
+}
+
+.info {
+  color: #22c55e;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.result {
+  margin-top: 1.5rem;
+  text-align: left;
+  padding: 1rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.result-label {
+  font-size: 0.75rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.result-text {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.hint {
+  color: #666;
+  font-size: 0.875rem;
+  margin-top: 1.5rem;
+}
+
+/* Settings */
+.settings h2 {
+  margin-bottom: 1.5rem;
+}
+
+.setting-group {
+  margin-bottom: 1rem;
+}
+
+.setting-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.setting-group input,
+.setting-group select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.save-button {
+  margin-top: 1.5rem;
+  padding: 0.625rem 2rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 2px solid #0f0f0f;
+  border-radius: 4px;
+  background: #0f0f0f;
+  color: white;
+  cursor: pointer;
+}
+
+.save-button:hover:not(:disabled) {
+  background: #333;
+}
+
+.save-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.message.success {
+  color: #22c55e;
+  font-size: 0.875rem;
+  margin-top: 1rem;
+}
+
+.message.error {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 1rem;
+  background: none;
+  padding: 0;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color: #f6f6f6;
+    background-color: #1a1a1a;
+  }
+
+  nav button {
+    background: #2f2f2f;
+    border-color: #555;
+    color: #f6f6f6;
+  }
+
+  nav button.active {
+    background: #f6f6f6;
+    color: #0f0f0f;
+  }
+
+  .setting-group input,
+  .setting-group select {
+    background: #2f2f2f;
+    border-color: #555;
+    color: #f6f6f6;
+  }
+
+  .record-button {
+    background: #2f2f2f;
+    border-color: #f6f6f6;
+    color: #f6f6f6;
+  }
+
+  .record-button:hover:not(:disabled) {
+    background: #f6f6f6;
+    color: #0f0f0f;
+  }
+
+  .result {
+    background: #2f2f2f;
+    border-color: #555;
+  }
+
+  .warning {
+    background: #422006;
+    color: #fbbf24;
+  }
+
+  .error {
+    background: #450a0a;
+  }
+
+  .save-button {
+    background: #f6f6f6;
+    color: #0f0f0f;
+    border-color: #f6f6f6;
+  }
+}
