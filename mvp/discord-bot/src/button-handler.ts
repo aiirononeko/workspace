@@ -133,10 +133,24 @@ export async function handleObsidianButton(interaction: ButtonInteraction): Prom
     contentLines.push(`## Original Content`);
     contentLines.push("");
     if (embedMeta.author) contentLines.push(`**${embedMeta.author}**`);
+    if (embedMeta.timestamp) contentLines.push(`*${embedMeta.timestamp}*`);
     if (embedMeta.title) contentLines.push(`> ${embedMeta.title}`);
     if (embedMeta.description) {
       contentLines.push("");
       contentLines.push(embedMeta.description);
+    }
+    if (embedMeta.imageUrl) {
+      contentLines.push("");
+      contentLines.push(`![image](${embedMeta.imageUrl})`);
+    }
+    if (embedMeta.videoUrl) {
+      contentLines.push("");
+      contentLines.push(`Video: ${embedMeta.videoUrl}`);
+    }
+    if (embedMeta.footer) {
+      contentLines.push("");
+      contentLines.push(`---`);
+      contentLines.push(embedMeta.footer);
     }
     contentLines.push("");
   }

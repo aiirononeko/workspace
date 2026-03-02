@@ -6,7 +6,12 @@ const client = new Anthropic({ apiKey: config.anthropic.apiKey });
 const MAX_RETRIES = 3;
 const INITIAL_BACKOFF_MS = 1000;
 
-export async function runClaude(prompt: string): Promise<string> {
+export async function runClaude(
+  prompt: string | Anthropic.Messages.ContentBlockParam[],
+): Promise<string> {
+  const content: Anthropic.Messages.ContentBlockParam[] =
+    typeof prompt === "string" ? [{ type: "text", text: prompt }] : prompt;
+
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -24,7 +29,7 @@ export async function runClaude(prompt: string): Promise<string> {
         {
           model: config.anthropic.model,
           max_tokens: config.anthropic.maxTokens,
-          messages: [{ role: "user", content: prompt }],
+          messages: [{ role: "user", content }],
         },
         { signal: controller.signal },
       );

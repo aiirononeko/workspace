@@ -1,8 +1,10 @@
+import type Anthropic from "@anthropic-ai/sdk";
 import { runClaude } from "./claude";
 
 const MAX_TEXT_LENGTH = 50000;
 const FETCH_TIMEOUT_MS = 10000;
 const MAX_HTML_BYTES = 2 * 1024 * 1024;
+const MAX_LINKED_URLS = 3;
 
 export const URL_REGEX = /https?:\/\/[^\s<>)"']+/g;
 
@@ -129,24 +131,126 @@ export async function fetchAndSummarize(url: string): Promise<string> {
   return runClaude(prompt);
 }
 
+async function fetchImageAsBase64(
+  imageUrl: string,
+): Promise<{ data: string; mediaType: "image/jpeg" | "image/png" | "image/gif" | "image/webp" } | null> {
+  try {
+    const res = await fetch(imageUrl, {
+      ...DEFAULT_FETCH_OPTIONS,
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+    if (!res.ok) return null;
+
+    const ct = res.headers.get("content-type") ?? "";
+    const mediaType = (["image/jpeg", "image/png", "image/gif", "image/webp"] as const).find((t) => ct.includes(t));
+    if (!mediaType) return null;
+
+    const buf = await res.arrayBuffer();
+    if (buf.byteLength > 5 * 1024 * 1024) return null; // 5MB limit
+    const data = Buffer.from(buf).toString("base64");
+    return { data, mediaType };
+  } catch (err) {
+    console.warn(`[summarize] Failed to fetch image: ${imageUrl}`, err);
+    return null;
+  }
+}
+
+async function fetchLinkedSummaries(description: string): Promise<string[]> {
+  const urls = description.match(URL_REGEX);
+  if (!urls) return [];
+
+  const unique = Array.from(new Set(urls as string[]));
+  const targets = unique
+    .filter((u) => validateUrl(u).valid && !isXUrl(u))
+    .slice(0, MAX_LINKED_URLS);
+
+  const results: string[] = [];
+  for (const url of targets) {
+    try {
+      const summary = await fetchAndSummarize(url);
+      results.push(`[${url}]\n${summary}`);
+    } catch (err) {
+      console.warn(`[summarize] Failed to fetch linked URL: ${url}`, err);
+    }
+  }
+  return results;
+}
+
 export async function summarizeFromEmbed(embedData: {
   url: string;
   author?: string;
   description?: string;
   title?: string;
+  imageUrl?: string;
+  thumbnailUrl?: string;
+  videoUrl?: string;
+  footer?: string;
+  timestamp?: string;
+  providerName?: string;
+  fields?: Array<{ name: string; value: string }>;
 }): Promise<string> {
   const parts: string[] = [];
   if (embedData.author) parts.push(`投稿者: ${embedData.author}`);
   if (embedData.title) parts.push(`タイトル: ${embedData.title}`);
   if (embedData.description) parts.push(`本文: ${embedData.description}`);
+  if (embedData.providerName) parts.push(`プロバイダ: ${embedData.providerName}`);
+  if (embedData.footer) parts.push(`フッター: ${embedData.footer}`);
+  if (embedData.timestamp) parts.push(`投稿日時: ${embedData.timestamp}`);
+  if (embedData.videoUrl) parts.push(`動画URL: ${embedData.videoUrl}`);
+  if (embedData.fields?.length) {
+    parts.push("追加情報:");
+    for (const f of embedData.fields) {
+      parts.push(`  - ${f.name}: ${f.value}`);
+    }
+  }
 
   if (parts.length === 0) {
     throw new Error("Embed情報が不十分です");
   }
 
-  const text = parts.join("\n");
-  const prompt = `以下のX(Twitter)ポストの内容を日本語で簡潔に要約してください。\n\nURL: ${embedData.url}\n\n${text}`;
-  return runClaude(prompt);
+  const textContent = parts.join("\n");
+  const promptText = `以下のX(Twitter)ポストの内容を日本語で簡潔に要約してください。画像が添付されている場合は、画像の内容も要約に含めてください。\n\nURL: ${embedData.url}\n\n${textContent}`;
+
+  // 画像がある場合はvision付きで呼び出す
+  const imageUrl = embedData.imageUrl || embedData.thumbnailUrl;
+  let postSummary: string;
+
+  if (imageUrl) {
+    const image = await fetchImageAsBase64(imageUrl);
+    if (image) {
+      const blocks: Anthropic.Messages.ContentBlockParam[] = [
+        {
+          type: "image",
+          source: { type: "base64", media_type: image.mediaType, data: image.data },
+        },
+        { type: "text", text: promptText },
+      ];
+      postSummary = await runClaude(blocks);
+    } else {
+      postSummary = await runClaude(promptText);
+    }
+  } else {
+    postSummary = await runClaude(promptText);
+  }
+
+  // リンク先コンテンツの統合要約
+  if (embedData.description) {
+    const linkedSummaries = await fetchLinkedSummaries(embedData.description);
+    if (linkedSummaries.length > 0) {
+      const integrationPrompt = `以下のX(Twitter)ポストの要約と、ポスト内で参照されているリンク先の要約を統合し、日本語で包括的に要約してください。
+
+## ポストの要約
+${postSummary}
+
+## リンク先コンテンツの要約
+${linkedSummaries.join("\n\n")}
+
+ポストの文脈を踏まえつつ、リンク先の重要な情報も含めた統合要約を生成してください。`;
+      return runClaude(integrationPrompt);
+    }
+  }
+
+  return postSummary;
 }
 
 export async function fetchTitle(url: string): Promise<string | null> {

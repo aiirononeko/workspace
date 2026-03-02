@@ -16,26 +16,38 @@ export interface KnowledgeAnalysis {
   skillDraft?: string;
 }
 
-const ANALYSIS_PROMPT = `あなたはAIエージェントエンジニアリングのナレッジ管理アシスタントです。
+const ANALYSIS_PROMPT = `あなたはパーソナルナレッジ管理アシスタントです。
 以下のWebコンテンツの要約を分析し、ナレッジとして蓄積する価値があるか判定してください。
+
+## ユーザーのプロフィール
+- ソフトウェアエンジニア（本業）
+- 個人開発・起業でビジネスを立ち上げたいと考えている
+- 人生の目標: 金銭的にも時間的にもゆとりをもち、おだやかに幸せに暮らすこと
 
 ## 重要: 関連性フィルタ (relevant)
 
 まず最初に、このコンテンツがナレッジとして蓄積する価値があるか判定してください。
+上記の目標達成に役立つ知識は幅広く収集します。
 
 ### relevant: true（蓄積する価値あり）
 - ソフトウェアエンジニアリング（設計、実装、テスト、運用）
 - AIエージェント、LLM、プロンプトエンジニアリング
 - 開発ツール、サービス、ライブラリの知見
 - 業務プロセス改善、生産性向上のテクニック
-- キャリア、チーム開発、組織論（エンジニアリング文脈）
+- キャリア、チーム開発、組織論
 - 技術トレンド、アーキテクチャ、ベストプラクティス
+- 起業・スタートアップ（事業立ち上げ、PMF、資金調達、法務）
+- 個人開発（マネタイズ、プロダクト戦略、マーケティング）
+- ビジネスモデル・収益化の知見
+- マーケティング・グロース（SEO、SNS運用、コンテンツマーケティング）
+- 資産形成・投資・節税（FIRE、副業収入、資産運用）
+- 時間管理・ライフハック・生産性向上
+- メンタルヘルス・ウェルビーイング・持続可能な働き方
 
 ### relevant: false（蓄積する価値なし）→ 他のフィールドは空でOK
-- ユーモア、ネタ、雑談
-- エンジニアリングと無関係な趣味・日常（フィットネス、料理、etc.）
-- 広告、宣伝
+- 広告、宣伝、ステマ
 - 内容が不明・取得不能なもの
+- ゴシップ・芸能ニュース
 
 迷ったら relevant: true にしてください。ただし明らかに無関係なものは false にしてください。
 
@@ -62,6 +74,13 @@ const ANALYSIS_PROMPT = `あなたはAIエージェントエンジニアリン�
 - Architecture: ソフトウェア設計、システムアーキテクチャ
 - Workflow: 開発プロセス、自動化、CI/CD
 - Career: キャリア、チーム、組織
+- Startup: 起業、スタートアップ、事業立ち上げ、PMF
+- Indie-Dev: 個人開発、サイドプロジェクト、マネタイズ
+- Business: ビジネスモデル、収益化、SaaS戦略
+- Marketing: マーケティング、SEO、SNS運用、グロース
+- Finance: 資産形成、投資、節税、FIRE
+- Productivity: 時間管理、ライフハック、生産性向上
+- Wellbeing: メンタルヘルス、ウェルビーイング、持続可能な働き方
 - General: 上記に当てはまらないもの
 
 ## ソースタイプ判定
@@ -119,13 +138,38 @@ export interface EmbedMetadata {
   author?: string;
   description?: string;
   title?: string;
+  imageUrl?: string;
+  thumbnailUrl?: string;
+  videoUrl?: string;
+  footer?: string;
+  timestamp?: string;
+  providerName?: string;
+  fields?: Array<{ name: string; value: string }>;
 }
 
-export function toEmbedMetadata(embed: { author?: { name?: string } | null; description?: string | null; title?: string | null }): EmbedMetadata {
+export function toEmbedMetadata(embed: {
+  author?: { name?: string } | null;
+  description?: string | null;
+  title?: string | null;
+  image?: { url?: string } | null;
+  thumbnail?: { url?: string } | null;
+  video?: { url?: string } | null;
+  footer?: { text?: string } | null;
+  timestamp?: string | null;
+  provider?: { name?: string } | null;
+  fields?: Array<{ name: string; value: string }> | null;
+}): EmbedMetadata {
   return {
     author: embed.author?.name ?? undefined,
     description: embed.description ?? undefined,
     title: embed.title ?? undefined,
+    imageUrl: embed.image?.url ?? undefined,
+    thumbnailUrl: embed.thumbnail?.url ?? undefined,
+    videoUrl: embed.video?.url ?? undefined,
+    footer: embed.footer?.text ?? undefined,
+    timestamp: embed.timestamp ?? undefined,
+    providerName: embed.provider?.name ?? undefined,
+    fields: embed.fields?.length ? embed.fields.map((f) => ({ name: f.name, value: f.value })) : undefined,
   };
 }
 
@@ -141,6 +185,17 @@ export async function analyzeForKnowledge(
     if (embedMeta.author) parts.push(`投稿者: ${embedMeta.author}`);
     if (embedMeta.title) parts.push(`タイトル: ${embedMeta.title}`);
     if (embedMeta.description) parts.push(`本文: ${embedMeta.description}`);
+    if (embedMeta.providerName) parts.push(`プロバイダ: ${embedMeta.providerName}`);
+    if (embedMeta.footer) parts.push(`フッター: ${embedMeta.footer}`);
+    if (embedMeta.timestamp) parts.push(`投稿日時: ${embedMeta.timestamp}`);
+    if (embedMeta.imageUrl) parts.push(`画像: ${embedMeta.imageUrl}`);
+    if (embedMeta.videoUrl) parts.push(`動画: ${embedMeta.videoUrl}`);
+    if (embedMeta.fields?.length) {
+      parts.push("追加情報:");
+      for (const f of embedMeta.fields) {
+        parts.push(`  - ${f.name}: ${f.value}`);
+      }
+    }
     parts.push("");
     parts.push("## AI要約");
   }
