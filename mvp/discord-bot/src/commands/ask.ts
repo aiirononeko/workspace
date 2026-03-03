@@ -5,6 +5,7 @@ import {
 } from "discord.js";
 import { enforceGuards } from "../guard";
 import { runClaude } from "../claude";
+import { SYSTEM_PROMPT } from "../personality";
 
 export const data = new SlashCommandBuilder()
   .setName("ask")
@@ -24,7 +25,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply();
 
   try {
-    const result = await runClaude(prompt);
+    const result = await runClaude(prompt, { system: SYSTEM_PROMPT });
 
     if (result.length <= 2000) {
       await interaction.editReply(result);

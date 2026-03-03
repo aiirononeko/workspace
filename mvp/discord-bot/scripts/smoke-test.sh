@@ -48,6 +48,14 @@ for f in src/*.ts src/commands/*.ts; do
   run_test "${name}の構文が正しい" bun build --target=bun "$f"
 done
 
+# --- 人格プロンプト ---
+echo "🎭 Personality"
+if [ -f src/personality.ts ]; then
+  run_test "personality.tsの構文が正しい" bun build --target=bun src/personality.ts
+  run_test "SYSTEM_PROMPTがexportされている" \
+    grep -q 'export.*SYSTEM_PROMPT' src/personality.ts
+fi
+
 # --- ナレッジ提案の整合性 ---
 echo "💡 Knowledge Proposal"
 run_test "KnowledgeAnalysisのrelevantフィールドがexportされている" \

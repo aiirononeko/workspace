@@ -79,6 +79,26 @@ else
   check_pass "config.ts以外でprocess.envを直接参照しない"
 fi
 
+# --- 人格プロンプト境界ルール ---
+echo "🎭 Personality Boundary Rules"
+
+# personality.ts はリーフ依存（他のsrcモジュールをimportしない）
+if [ -f src/personality.ts ]; then
+  check_no_match "personality.tsがリーフ依存である" \
+    grep -E 'from\s+"\.\/(claude|guard|config|summarize|bookmark|button|knowledge|index|commands)' src/personality.ts
+fi
+
+# claude.ts は personality.ts をimportしない（呼び出し元が渡す設計）
+check_no_match "claude.tsがpersonalityをimportしない" \
+  grep -E 'from\s+"\./personality' src/claude.ts
+
+# 構造化出力モジュールは personality.ts をimportしない
+check_no_match "knowledge-proposer.tsがpersonalityをimportしない" \
+  grep -E 'from\s+"\./personality' src/knowledge-proposer.ts
+
+check_no_match "button-handler.tsがpersonalityをimportしない" \
+  grep -E 'from\s+"\./personality' src/button-handler.ts
+
 # --- ナレッジ提案ルール ---
 echo "💡 Knowledge Proposal Rules"
 

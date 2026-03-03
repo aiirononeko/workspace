@@ -8,6 +8,7 @@ const INITIAL_BACKOFF_MS = 1000;
 
 export async function runClaude(
   prompt: string | Anthropic.Messages.ContentBlockParam[],
+  options?: { system?: string },
 ): Promise<string> {
   const content: Anthropic.Messages.ContentBlockParam[] =
     typeof prompt === "string" ? [{ type: "text", text: prompt }] : prompt;
@@ -29,6 +30,7 @@ export async function runClaude(
         {
           model: config.anthropic.model,
           max_tokens: config.anthropic.maxTokens,
+          ...(options?.system ? { system: options.system } : {}),
           messages: [{ role: "user", content }],
         },
         { signal: controller.signal },

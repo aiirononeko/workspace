@@ -1,5 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { runClaude } from "./claude";
+import { SYSTEM_PROMPT } from "./personality";
 
 const MAX_TEXT_LENGTH = 50000;
 const FETCH_TIMEOUT_MS = 10000;
@@ -128,7 +129,7 @@ export async function fetchAndSummarize(url: string): Promise<string> {
   }
 
   const prompt = `以下のWebページの内容を日本語で簡潔に要約してください。\n\nURL: ${url}\n\n${text}`;
-  return runClaude(prompt);
+  return runClaude(prompt, { system: SYSTEM_PROMPT });
 }
 
 async function fetchImageAsBase64(
@@ -225,12 +226,12 @@ export async function summarizeFromEmbed(embedData: {
         },
         { type: "text", text: promptText },
       ];
-      postSummary = await runClaude(blocks);
+      postSummary = await runClaude(blocks, { system: SYSTEM_PROMPT });
     } else {
-      postSummary = await runClaude(promptText);
+      postSummary = await runClaude(promptText, { system: SYSTEM_PROMPT });
     }
   } else {
-    postSummary = await runClaude(promptText);
+    postSummary = await runClaude(promptText, { system: SYSTEM_PROMPT });
   }
 
   // リンク先コンテンツの統合要約
@@ -246,7 +247,7 @@ ${postSummary}
 ${linkedSummaries.join("\n\n")}
 
 ポストの文脈を踏まえつつ、リンク先の重要な情報も含めた統合要約を生成してください。`;
-      return runClaude(integrationPrompt);
+      return runClaude(integrationPrompt, { system: SYSTEM_PROMPT });
     }
   }
 
