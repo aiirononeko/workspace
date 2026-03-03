@@ -6,6 +6,7 @@ import { data as summarizeCommand, execute as summarizeExecute } from "./command
 import { data as saveCommand, execute as saveExecute } from "./commands/save";
 import { handleBookmarkMessage, handleBookmarkMessageUpdate } from "./bookmark-watcher";
 import { handleObsidianButton, handleSkillDraftButton } from "./button-handler";
+import { handleMention } from "./mention-handler";
 
 const commands = [askCommand, taskCommand, summarizeCommand, saveCommand];
 
@@ -86,6 +87,12 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 client.on("messageCreate", async (message) => {
+  try {
+    await handleMention(message);
+  } catch (err) {
+    console.error("[mention-handler] Unhandled error:", err);
+  }
+
   try {
     await handleBookmarkMessage(message);
   } catch (err) {

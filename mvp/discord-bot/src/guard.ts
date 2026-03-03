@@ -1,9 +1,19 @@
-import type { ChatInputCommandInteraction } from "discord.js";
+import type { ChatInputCommandInteraction, Message } from "discord.js";
 import { config } from "./config";
 
 export function isAllowed(interaction: ChatInputCommandInteraction): boolean {
   const guildId = interaction.guildId;
   const userId = interaction.user.id;
+
+  if (guildId && !config.allowed.guildIds.includes(guildId)) return false;
+  if (!config.allowed.userIds.includes(userId)) return false;
+
+  return true;
+}
+
+export function isMessageAllowed(message: Message): boolean {
+  const guildId = message.guildId;
+  const userId = message.author.id;
 
   if (guildId && !config.allowed.guildIds.includes(guildId)) return false;
   if (!config.allowed.userIds.includes(userId)) return false;

@@ -26,6 +26,7 @@ src/
 ├── personality.ts        # 人格システムプロンプト（リーフ依存）
 ├── guard.ts              # 権限チェック・レートリミット
 ├── claude.ts             # Anthropic API ラッパー（オプショナルsystemプロンプト対応）
+├── mention-handler.ts    # メンション検知・スレッド作成・会話応答
 ├── summarize.ts          # URL取得・HTML解析・要約
 ├── bookmark-watcher.ts   # ブックマークチャンネル監視
 ├── button-handler.ts     # ボタンインタラクション処理
@@ -54,7 +55,7 @@ src/
 ### 人格プロンプト適用ルール
 
 - `runClaude()` はオプショナルな `system` パラメータを受け取る。人格を適用したい呼び出し元が `personality.ts` の `SYSTEM_PROMPT` を渡す
-- **適用する**: `/ask`コマンド、URL要約（`/summarize` およびブックマーク要約）
+- **適用する**: `/ask`コマンド、URL要約（`/summarize` およびブックマーク要約）、メンション会話（`mention-handler.ts`）
 - **適用しない**: `knowledge-proposer.ts`（構造化JSON出力）、`button-handler.ts`のSkill Draft生成（コード生成タスク）
 - 構造化出力（JSON等）を期待するモジュールは `personality.ts` をimportしてはならない
 
