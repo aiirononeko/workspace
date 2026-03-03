@@ -4,17 +4,20 @@ import { data as askCommand, execute as askExecute } from "./commands/ask";
 import { data as taskCommand, execute as taskExecute } from "./commands/task";
 import { data as summarizeCommand, execute as summarizeExecute } from "./commands/summarize";
 import { data as saveCommand, execute as saveExecute } from "./commands/save";
+import { data as memoryCommand, execute as memoryExecute } from "./commands/memory";
 import { handleBookmarkMessage, handleBookmarkMessageUpdate } from "./bookmark-watcher";
 import { handleObsidianButton, handleSkillDraftButton } from "./button-handler";
 import { handleMention } from "./mention-handler";
+import { initMemoryDb } from "./memory";
 
-const commands = [askCommand, taskCommand, summarizeCommand, saveCommand];
+const commands = [askCommand, taskCommand, summarizeCommand, saveCommand, memoryCommand];
 
 const handlers: Record<string, (interaction: ChatInputCommandInteraction) => Promise<void>> = {
   ask: askExecute,
   task: taskExecute,
   summarize: summarizeExecute,
   save: saveExecute,
+  memory: memoryExecute,
 };
 
 const client = new Client({
@@ -110,6 +113,7 @@ client.on("messageUpdate", async (_old, newMsg) => {
 });
 
 async function main() {
+  initMemoryDb();
   await deployCommands();
   await client.login(config.discord.token);
 }

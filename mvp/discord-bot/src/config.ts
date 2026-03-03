@@ -73,4 +73,5 @@ export const config = {
   rateLimitPerMinute: parsePositiveInt(merged.RATE_LIMIT_PER_MINUTE, 5),
   obsidianVaultPath: merged.OBSIDIAN_VAULT_PATH || "",
   bookmarkChannelIds: merged.BOOKMARK_CHANNEL_IDS ? csvList(merged.BOOKMARK_CHANNEL_IDS) : [],
+  dataDir: merged.DATA_DIR || resolve(__dirname, "../data"),
 } as const;

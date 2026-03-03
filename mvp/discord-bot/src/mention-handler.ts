@@ -6,6 +6,8 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { runClaudeConversation } from "./claude";
 import { SYSTEM_PROMPT } from "./personality";
 import { isMessageAllowed, checkRateLimit } from "./guard";
+import { getCoreMemory, getTopProfileEntries } from "./memory";
+import { extractAndUpdateMemory } from "./memory-extractor";
 
 /** Bot が作成したスレッドの ID を記憶する */
 const ownedThreads = new Set<string>();
@@ -86,12 +88,18 @@ async function replyInThread(
   await thread.sendTyping();
 
   try {
+    const systemPrompt = buildSystemPromptWithMemory();
     const result = await runClaudeConversation(messages, {
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
     });
 
     // Discord の 2000 文字制限を考慮して分割送信
     await sendLongMessage(thread, result);
+
+    // 非同期でメモリ抽出（レスポンスには影響しない）
+    extractAndUpdateMemory(messages, triggerMessage.id).catch((err) =>
+      console.error("[mention-handler] Memory extraction failed:", err),
+    );
   } catch (error) {
     const msg =
       error instanceof Error ? error.message : "不明なエラーが発生しました";
@@ -155,4 +163,26 @@ async function sendLongMessage(
     await thread.send(remaining.slice(0, splitAt));
     remaining = remaining.slice(splitAt).replace(/^\n/, "");
   }
+}
+
+function buildSystemPromptWithMemory(): string {
+  const coreMemory = getCoreMemory();
+  const topEntries = getTopProfileEntries(5);
+
+  if (!coreMemory && topEntries.length === 0) return SYSTEM_PROMPT;
+
+  let memorySection = "\n\n## あなたが知っているユーザーについての情報\n";
+
+  if (coreMemory) {
+    memorySection += `\n### 概要\n${coreMemory}\n`;
+  }
+
+  if (topEntries.length > 0) {
+    memorySection += "\n### 詳細\n";
+    for (const entry of topEntries) {
+      memorySection += `- [${entry.category}] ${entry.content}\n`;
+    }
+  }
+
+  return SYSTEM_PROMPT + memorySection;
 }

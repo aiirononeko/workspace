@@ -6,6 +6,8 @@ import {
 import { enforceGuards } from "../guard";
 import { runClaude } from "../claude";
 import { SYSTEM_PROMPT } from "../personality";
+import { getCoreMemory, getTopProfileEntries } from "../memory";
+import { extractAndUpdateMemory } from "../memory-extractor";
 
 export const data = new SlashCommandBuilder()
   .setName("ask")
@@ -25,7 +27,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply();
 
   try {
-    const result = await runClaude(prompt, { system: SYSTEM_PROMPT });
+    const systemPrompt = buildSystemPromptWithMemory();
+    const result = await runClaude(prompt, { system: systemPrompt });
 
     if (result.length <= 2000) {
       await interaction.editReply(result);
@@ -38,8 +41,35 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         files: [attachment],
       });
     }
+
+    // 非同期でメモリ抽出
+    extractAndUpdateMemory([{ role: "user", content: prompt }]).catch((err) =>
+      console.error("[ask] Memory extraction failed:", err),
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "不明なエラーが発生しました";
     await interaction.editReply(`エラー: ${message}`);
   }
+}
+
+function buildSystemPromptWithMemory(): string {
+  const coreMemory = getCoreMemory();
+  const topEntries = getTopProfileEntries(5);
+
+  if (!coreMemory && topEntries.length === 0) return SYSTEM_PROMPT;
+
+  let memorySection = "\n\n## あなたが知っているユーザーについての情報\n";
+
+  if (coreMemory) {
+    memorySection += `\n### 概要\n${coreMemory}\n`;
+  }
+
+  if (topEntries.length > 0) {
+    memorySection += "\n### 詳細\n";
+    for (const entry of topEntries) {
+      memorySection += `- [${entry.category}] ${entry.content}\n`;
+    }
+  }
+
+  return SYSTEM_PROMPT + memorySection;
 }

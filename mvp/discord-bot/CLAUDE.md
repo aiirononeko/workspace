@@ -31,8 +31,11 @@ src/
 ├── bookmark-watcher.ts   # ブックマークチャンネル監視
 ├── button-handler.ts     # ボタンインタラクション処理
 ├── knowledge-proposer.ts # ナレッジ分析・提案（構造化JSON出力）
+├── memory.ts             # メモリストレージ層（SQLite、config.tsのみ依存）
+├── memory-extractor.ts   # Claude記憶抽出・統合（claude.ts + memory.ts依存）
 └── commands/             # スラッシュコマンド
     ├── ask.ts
+    ├── memory.ts
     ├── save.ts
     ├── summarize.ts
     └── task.ts
@@ -44,6 +47,8 @@ src/
 - `personality.ts` はリーフ依存（他のsrcファイルをimportしない）
 - `guard.ts` は `config.ts` のみに依存
 - `claude.ts` は `config.ts` のみに依存（`personality.ts` をimportしない）
+- `memory.ts` は `config.ts` のみに依存（リーフライク、AI非依存）
+- `memory-extractor.ts` は `claude.ts` + `memory.ts` に依存（`personality.ts` をimportしない）
 - `commands/` 配下は他のcommandファイルをimportしない
 - `index.ts` だけがDiscord Clientを生成・管理する
 
@@ -59,6 +64,16 @@ src/
 - **適用しない**: `knowledge-proposer.ts`（構造化JSON出力）、`button-handler.ts`のSkill Draft生成（コード生成タスク）
 - 構造化出力（JSON等）を期待するモジュールは `personality.ts` をimportしてはならない
 
+### メモリシステム
+
+- `memory.ts` はBun内蔵SQLite（WALモード）で `data/memory.db` に永続化
+- Core Memory: ユーザーの要約（常にシステムプロンプトに挿入）
+- Profile Entries: 蓄積される事実（最大50件、スコアベースで自動eviction）
+- メンション会話・`/ask` でメモリ注入 + レスポンス後に非同期抽出
+- `/memory` コマンド: show / delete / clear
+- PII自動除外、confidence < 0.5 のエントリは保存しない
+- 削除されたエントリはCore Memory再統合時に除外される（復活バグ防止）
+
 ### ナレッジ提案ルール
 
 - ナレッジ分析には必ず `relevant` 判定を含めること（エンジニアリング・ビジネス・自己成長に無関係なコンテンツは提案しない）
@@ -73,3 +88,5 @@ src/
 - ナレッジ提案で `relevant` フィルタなしにボタンを表示すること
 - `knowledge-proposer.ts` や `button-handler.ts` から `personality.ts` をimportすること（構造化出力に人格が混入する）
 - `claude.ts` から `personality.ts` をimportすること（呼び出し元が明示的に渡す設計）
+- `memory-extractor.ts` から `personality.ts` をimportすること（記憶抽出は構造化出力）
+- `memory.ts` から `config.ts` 以外のsrcモジュールをimportすること

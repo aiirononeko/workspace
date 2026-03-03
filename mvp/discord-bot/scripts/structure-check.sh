@@ -68,7 +68,7 @@ check_no_match "claude.tsがconfig以外のsrcモジュールをimportしない"
 
 # commands/ 配下のファイル同士の相互import禁止
 check_no_match "commands/配下が他のcommandをimportしない" \
-  grep -rE 'from\s+"\.\/(ask|save|summarize|task)' src/commands/
+  grep -rE 'from\s+"\.\/(ask|save|summarize|task|memory)' src/commands/
 
 # --- 環境変数の直接参照禁止（config.ts以外） ---
 echo "🔒 Environment Variable Rules"
@@ -98,6 +98,21 @@ check_no_match "knowledge-proposer.tsがpersonalityをimportしない" \
 
 check_no_match "button-handler.tsがpersonalityをimportしない" \
   grep -E 'from\s+"\./personality' src/button-handler.ts
+
+# --- メモリシステムルール ---
+echo "🧠 Memory System Rules"
+
+# memory.ts は config.ts のみに依存（リーフライク）
+if [ -f src/memory.ts ]; then
+  check_no_match "memory.tsがconfig以外のsrcモジュールをimportしない" \
+    grep -E 'from\s+"\.\/(claude|guard|personality|summarize|bookmark|button|knowledge|index|commands|mention|memory-extractor)' src/memory.ts
+fi
+
+# memory-extractor.ts は personality.ts をimportしない
+if [ -f src/memory-extractor.ts ]; then
+  check_no_match "memory-extractor.tsがpersonalityをimportしない" \
+    grep -E 'from\s+"\./personality' src/memory-extractor.ts
+fi
 
 # --- ナレッジ提案ルール ---
 echo "💡 Knowledge Proposal Rules"
