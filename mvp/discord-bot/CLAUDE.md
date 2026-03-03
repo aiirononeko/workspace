@@ -31,6 +31,7 @@ src/
 ├── bookmark-watcher.ts   # ブックマークチャンネル監視
 ├── button-handler.ts     # ボタンインタラクション処理
 ├── knowledge-proposer.ts # ナレッジ分析・提案（構造化JSON出力）
+├── prompt-builder.ts     # メモリ付きシステムプロンプト構築（personality.ts + memory.ts依存）
 ├── memory.ts             # メモリストレージ層（SQLite、config.tsのみ依存）
 ├── memory-extractor.ts   # Claude記憶抽出・統合（claude.ts + memory.ts依存）
 └── commands/             # スラッシュコマンド
@@ -48,6 +49,7 @@ src/
 - `guard.ts` は `config.ts` のみに依存
 - `claude.ts` は `config.ts` のみに依存（`personality.ts` をimportしない）
 - `memory.ts` は `config.ts` のみに依存（リーフライク、AI非依存）
+- `prompt-builder.ts` は `personality.ts` + `memory.ts` に依存
 - `memory-extractor.ts` は `claude.ts` + `memory.ts` に依存（`personality.ts` をimportしない）
 - `commands/` 配下は他のcommandファイルをimportしない
 - `index.ts` だけがDiscord Clientを生成・管理する

@@ -20,12 +20,13 @@ const analysisCache = new Map<string, CachedAnalysis & { expiresAt: number }>();
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1時間
 
 // 期限切れキャッシュの定期クリーンアップ（15分ごと）
-setInterval(() => {
+const cacheCleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [key, value] of analysisCache) {
     if (now > value.expiresAt) analysisCache.delete(key);
   }
 }, 15 * 60 * 1000);
+cacheCleanupInterval.unref();
 
 export function cacheAnalysis(threadId: string, analysis: KnowledgeAnalysis, summary: string, url: string, embedMeta?: EmbedMetadata): void {
   analysisCache.set(threadId, {

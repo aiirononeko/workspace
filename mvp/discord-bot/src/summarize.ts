@@ -92,7 +92,7 @@ export function extractTitle(html: string): string | null {
   return title || null;
 }
 
-export async function fetchAndSummarize(url: string): Promise<string> {
+async function fetchHtml(url: string): Promise<string> {
   const response = await fetch(url, {
     ...DEFAULT_FETCH_OPTIONS,
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
@@ -121,7 +121,10 @@ export async function fetchAndSummarize(url: string): Promise<string> {
     }
     chunks.push(value);
   }
-  const html = new TextDecoder().decode(Buffer.concat(chunks));
+  return new TextDecoder().decode(Buffer.concat(chunks));
+}
+
+async function summarizeHtml(html: string, url: string): Promise<string> {
   const text = extractText(html);
 
   if (!text || text.length < 10) {
@@ -130,6 +133,18 @@ export async function fetchAndSummarize(url: string): Promise<string> {
 
   const prompt = `以下のWebページの内容を日本語で簡潔に要約してください。\n\nURL: ${url}\n\n${text}`;
   return runClaude(prompt, { system: SYSTEM_PROMPT });
+}
+
+export async function fetchAndSummarize(url: string): Promise<string> {
+  const html = await fetchHtml(url);
+  return summarizeHtml(html, url);
+}
+
+export async function fetchTitleAndSummarize(url: string): Promise<{ title: string | null; summary: string }> {
+  const html = await fetchHtml(url);
+  const title = extractTitle(html);
+  const summary = await summarizeHtml(html, url);
+  return { title, summary };
 }
 
 async function fetchImageAsBase64(
@@ -165,16 +180,16 @@ async function fetchLinkedSummaries(description: string): Promise<string[]> {
     .filter((u) => validateUrl(u).valid && !isXUrl(u))
     .slice(0, MAX_LINKED_URLS);
 
-  const results: string[] = [];
-  for (const url of targets) {
-    try {
+  const settled = await Promise.allSettled(
+    targets.map(async (url) => {
       const summary = await fetchAndSummarize(url);
-      results.push(`[${url}]\n${summary}`);
-    } catch (err) {
-      console.warn(`[summarize] Failed to fetch linked URL: ${url}`, err);
-    }
-  }
-  return results;
+      return `[${url}]\n${summary}`;
+    }),
+  );
+
+  return settled
+    .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
+    .map((r) => r.value);
 }
 
 export async function summarizeFromEmbed(embedData: {

@@ -4,13 +4,34 @@ import {
 } from "discord.js";
 import type Anthropic from "@anthropic-ai/sdk";
 import { runClaudeConversation } from "./claude";
-import { SYSTEM_PROMPT } from "./personality";
 import { isMessageAllowed, checkRateLimit } from "./guard";
-import { getCoreMemory, getTopProfileEntries } from "./memory";
+import { buildSystemPromptWithMemory } from "./prompt-builder";
 import { extractAndUpdateMemory } from "./memory-extractor";
 
-/** Bot が作成したスレッドの ID を記憶する */
-const ownedThreads = new Set<string>();
+/** Bot が作成したスレッドの ID を記憶する（タイムスタンプ付きで期限切れ処理） */
+const ownedThreads = new Map<string, number>();
+const OWNED_THREAD_TTL_MS = 2 * 60 * 60 * 1000; // 2時間
+
+function addOwnedThread(threadId: string): void {
+  ownedThreads.set(threadId, Date.now());
+  // 簡易eviction: 追加時に期限切れをクリーンアップ
+  if (ownedThreads.size > 100) {
+    const now = Date.now();
+    for (const [id, ts] of ownedThreads) {
+      if (now - ts > OWNED_THREAD_TTL_MS) ownedThreads.delete(id);
+    }
+  }
+}
+
+function isOwnedThread(threadId: string): boolean {
+  const ts = ownedThreads.get(threadId);
+  if (ts === undefined) return false;
+  if (Date.now() - ts > OWNED_THREAD_TTL_MS) {
+    ownedThreads.delete(threadId);
+    return false;
+  }
+  return true;
+}
 
 /**
  * メンションされたときにスレッドを作って会話を開始する。
@@ -23,7 +44,7 @@ export async function handleMention(message: Message): Promise<void> {
   if (!me) return;
 
   const inOwnedThread =
-    message.channel.isThread() && ownedThreads.has(message.channel.id);
+    message.channel.isThread() && isOwnedThread(message.channel.id);
   const isMentioned = message.mentions.has(me);
 
   if (!isMentioned && !inOwnedThread) return;
@@ -37,7 +58,7 @@ export async function handleMention(message: Message): Promise<void> {
   // メンションがチャンネル直投稿 → スレッドを作成
   if (isMentioned && !message.channel.isThread()) {
     const thread = await createThread(message);
-    ownedThreads.add(thread.id);
+    addOwnedThread(thread.id);
     await replyInThread(thread, message);
     return;
   }
@@ -45,8 +66,8 @@ export async function handleMention(message: Message): Promise<void> {
   // メンションがスレッド内、またはボットのスレッド内の通常メッセージ
   if (message.channel.isThread()) {
     // 初回メンションがスレッド内の場合もスレッドを記憶
-    if (isMentioned && !ownedThreads.has(message.channel.id)) {
-      ownedThreads.add(message.channel.id);
+    if (isMentioned && !isOwnedThread(message.channel.id)) {
+      addOwnedThread(message.channel.id);
     }
     await replyInThread(message.channel, message);
   }
@@ -165,37 +186,3 @@ async function sendLongMessage(
   }
 }
 
-function buildSystemPromptWithMemory(): string {
-  const coreMemory = getCoreMemory();
-  const topEntries = getTopProfileEntries(10);
-
-  if (!coreMemory && topEntries.length === 0) return SYSTEM_PROMPT;
-
-  let memorySection = "\n\n## ユーザーとの関係性\n";
-
-  if (coreMemory) {
-    memorySection += `\n${coreMemory}\n`;
-  }
-
-  if (topEntries.length > 0) {
-    memorySection += "\n### プロファイル詳細\n";
-    const grouped = groupByCategory(topEntries);
-    for (const [category, entries] of Object.entries(grouped)) {
-      memorySection += `\n**${category}**\n`;
-      for (const entry of entries) {
-        memorySection += `- ${entry.content}\n`;
-      }
-    }
-  }
-
-  return SYSTEM_PROMPT + memorySection;
-}
-
-function groupByCategory(entries: { category: string; content: string }[]): Record<string, { content: string }[]> {
-  const groups: Record<string, { content: string }[]> = {};
-  for (const entry of entries) {
-    if (!groups[entry.category]) groups[entry.category] = [];
-    groups[entry.category].push({ content: entry.content });
-  }
-  return groups;
-}

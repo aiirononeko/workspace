@@ -6,7 +6,7 @@ import {
   ButtonStyle,
 } from "discord.js";
 import { config } from "./config";
-import { validateUrl, fetchAndSummarize, fetchTitle, summarizeFromEmbed, URL_REGEX, X_DOMAINS, isXUrl } from "./summarize";
+import { validateUrl, fetchTitleAndSummarize, summarizeFromEmbed, URL_REGEX, X_DOMAINS, isXUrl } from "./summarize";
 import { analyzeForKnowledge, buildProposalMessage, toEmbedMetadata, type EmbedMetadata } from "./knowledge-proposer";
 import { cacheAnalysis } from "./button-handler";
 
@@ -79,15 +79,12 @@ export async function handleBookmarkMessage(message: Message): Promise<void> {
     }
 
     try {
-      const title = await fetchTitle(url);
+      const { title, summary } = await fetchTitleAndSummarize(url);
       const threadName = title
         ? title.slice(0, 100)
         : new URL(url).hostname.slice(0, 100);
 
       const thread = await message.startThread({ name: threadName });
-
-      await thread.sendTyping();
-      const summary = await fetchAndSummarize(url);
 
       if (summary.length <= 2000) {
         await thread.send(summary);
