@@ -6,6 +6,7 @@ const MODE_TEMPERATURE: Record<ToneMode, number> = {
   formal: 0.1,
   casual: 0.3,
 };
+const RETRY_TEMPERATURE = 0.0;
 
 export function detectToneMode(text: string): ToneMode {
   const t = text.normalize("NFKC");
@@ -238,17 +239,19 @@ function buildSystemPrompt(mode: ToneMode): string {
 }
 
 function hasDirectionFlipRisk(input: string, output: string): boolean {
-  const inputHasSaseteMorau = /させてもら/.test(input);
-  const outputHasSaseteMorau = /させてもら/.test(output);
-  const inputHasTemorau = /てもら|て貰|いただ/.test(input);
+  const i = input.normalize("NFKC");
+  const o = output.normalize("NFKC");
+  const inputHasSaseteMorau = /させてもら/.test(i);
+  const outputHasSaseteMorau = /させてもら/.test(o);
+  const inputHasTemorau = /てもら|て貰|いただ/.test(i);
 
   // 元にない「させてもらう」が出現
   if (!inputHasSaseteMorau && inputHasTemorau && outputHasSaseteMorau)
     return true;
   // 「してほしい/してもらう」が「するので」に変化
   if (
-    /(してほしい|してもら|いただけると)/.test(input) &&
-    /(するので|しますので)/.test(output)
+    /(してほしい|してもら|いただけると)/.test(i) &&
+    /(するので|しますので)/.test(o)
   )
     return true;
 
@@ -308,7 +311,7 @@ export async function convertStyle(
     hasDirectionFlipRisk(text, result) ||
     (mode === "casual" && hasCasualDriftRisk(result))
   ) {
-    result = await callConvert(client, systemPrompt, text, 0.0);
+    result = await callConvert(client, systemPrompt, text, RETRY_TEMPERATURE);
   }
 
   return result;
