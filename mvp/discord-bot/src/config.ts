@@ -74,4 +74,5 @@ export const config = {
   obsidianVaultPath: merged.OBSIDIAN_VAULT_PATH || "",
   bookmarkChannelIds: merged.BOOKMARK_CHANNEL_IDS ? csvList(merged.BOOKMARK_CHANNEL_IDS) : [],
   dataDir: merged.DATA_DIR || resolve(__dirname, "../data"),
+  agentMaxBudgetUsd: parseFloat(merged.AGENT_MAX_BUDGET_USD || "5.0"),
 } as const;

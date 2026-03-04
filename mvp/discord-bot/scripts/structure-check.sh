@@ -70,6 +70,24 @@ check_no_match "claude.tsがconfig以外のsrcモジュールをimportしない"
 check_no_match "commands/配下が他のcommandをimportしない" \
   grep -rE 'from\s+"\.\/(ask|save|summarize|task|memory)' src/commands/
 
+# agent-executor.ts は config.ts のみに依存
+if [ -f src/agent-executor.ts ]; then
+  check_no_match "agent-executor.tsがconfig以外のsrcモジュールをimportしない" \
+    grep -E 'from\s+"\.\/(claude|guard|personality|summarize|bookmark|button|knowledge|index|commands|mention|memory|prompt-builder)' src/agent-executor.ts
+fi
+
+# progress-reporter.ts はリーフ依存（agent-executor.tsの型のみ許可）
+if [ -f src/progress-reporter.ts ]; then
+  check_no_match "progress-reporter.tsがconfig/claudeをimportしない" \
+    grep -E 'from\s+"\.\/(config|claude|guard|personality|summarize|bookmark|button|knowledge|index|commands|mention|memory|prompt-builder)' src/progress-reporter.ts
+fi
+
+# agent-executor.ts は personality.ts をimportしない
+if [ -f src/agent-executor.ts ]; then
+  check_no_match "agent-executor.tsがpersonalityをimportしない" \
+    grep -E 'from\s+"\./personality' src/agent-executor.ts
+fi
+
 # --- 環境変数の直接参照禁止（config.ts以外） ---
 echo "🔒 Environment Variable Rules"
 

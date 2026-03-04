@@ -6,7 +6,7 @@ Discordボットプロジェクト。ブックマーク監視、URL要約、ナ�
 
 - **ランタイム**: Bun
 - **言語**: TypeScript (strict mode)
-- **主要依存**: discord.js, @anthropic-ai/sdk
+- **主要依存**: discord.js, @anthropic-ai/sdk, @anthropic-ai/claude-agent-sdk
 - **パッケージマネージャ**: bun
 
 ## Definition of Done (DoD)
@@ -26,7 +26,9 @@ src/
 ├── personality.ts        # 人格システムプロンプト（リーフ依存）
 ├── guard.ts              # 権限チェック・レートリミット
 ├── claude.ts             # Anthropic API ラッパー（オプショナルsystemプロンプト対応）
-├── mention-handler.ts    # メンション検知・スレッド作成・会話応答
+├── mention-handler.ts    # メンション検知・スレッド作成・会話応答・実装依頼検出
+├── agent-executor.ts     # Agent SDK オーケストレーター（config.tsのみ依存）
+├── progress-reporter.ts  # 進捗→Discordスレッド投稿（リーフ、型のみagent-executor依存）
 ├── summarize.ts          # URL取得・HTML解析・要約
 ├── bookmark-watcher.ts   # ブックマークチャンネル監視
 ├── button-handler.ts     # ボタンインタラクション処理
@@ -51,6 +53,9 @@ src/
 - `memory.ts` は `config.ts` のみに依存（リーフライク、AI非依存）
 - `prompt-builder.ts` は `personality.ts` + `memory.ts` に依存
 - `memory-extractor.ts` は `claude.ts` + `memory.ts` に依存（`personality.ts` をimportしない）
+- `agent-executor.ts` は `config.ts` のみに依存（Agent SDKを直接使用、claude.tsとは独立）
+- `progress-reporter.ts` はリーフ依存（型のみ `agent-executor.ts` から import 可）
+- `agent-executor.ts` から `personality.ts` をimportしない（構造化実行タスク）
 - `commands/` 配下は他のcommandファイルをimportしない
 - `index.ts` だけがDiscord Clientを生成・管理する
 
@@ -92,3 +97,6 @@ src/
 - `claude.ts` から `personality.ts` をimportすること（呼び出し元が明示的に渡す設計）
 - `memory-extractor.ts` から `personality.ts` をimportすること（記憶抽出は構造化出力）
 - `memory.ts` から `config.ts` 以外のsrcモジュールをimportすること
+- `agent-executor.ts` から `personality.ts` をimportすること（構造化実行タスク）
+- `agent-executor.ts` から `claude.ts` をimportすること（Agent SDKを直接使用）
+- `progress-reporter.ts` から `config.ts` や `claude.ts` をimportすること（リーフ依存）

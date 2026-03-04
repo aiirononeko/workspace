@@ -67,6 +67,60 @@ export async function runClaudeConversation(
   throw lastError ?? new Error("Claude API failed after retries");
 }
 
+export async function runClaudeWithTools(
+  messages: Anthropic.Messages.MessageParam[],
+  options?: {
+    system?: string;
+    tools?: Anthropic.Messages.Tool[];
+  },
+): Promise<Anthropic.Messages.Message> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      const backoff = INITIAL_BACKOFF_MS * 2 ** (attempt - 1);
+      console.log(`[claude] retry ${attempt}/${MAX_RETRIES} after ${backoff}ms`);
+      await new Promise((r) => setTimeout(r, backoff));
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), config.claudeTimeoutMs);
+
+    try {
+      const response = await client.messages.create(
+        {
+          model: config.anthropic.model,
+          max_tokens: config.anthropic.maxTokens,
+          ...(options?.system ? { system: options.system } : {}),
+          ...(options?.tools ? { tools: options.tools } : {}),
+          messages,
+        },
+        { signal: controller.signal },
+      );
+
+      console.log(`[claude] stop_reason: ${response.stop_reason}`);
+      return response;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+
+      if (controller.signal.aborted) {
+        throw new Error(`Claude API timed out after ${config.claudeTimeoutMs}ms`);
+      }
+
+      if (err instanceof Anthropic.APIError && (err.status === 429 || err.status >= 500)) {
+        console.warn(`[claude] ${err.status} error: ${err.message}`);
+        continue;
+      }
+
+      throw lastError;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  throw lastError ?? new Error("Claude API failed after retries");
+}
+
 export async function runClaude(
   prompt: string | Anthropic.Messages.ContentBlockParam[],
   options?: { system?: string },
