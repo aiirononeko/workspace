@@ -32,10 +32,26 @@ const COMMON_PROMPT = `あなたはaiirononekoの文体変換アシスタント�
 - 一つのメッセージに複数の用件がある場合は用件ごとに改行で区切る
 - 改行は空行なしの単一改行（\\n）のみ使用する。空行（\\n\\n）は絶対に入れない
 
-【絶対に守るルール】
-- 入力の意味・内容・主語・依頼の方向性は一切変えない
-- 「使ってみてほしい」を「使わせてもらう」のように意味が反転する変換は絶対にしない
-- 文体だけを変換し、内容は原文に忠実に保つこと
+【最重要ルール：述語構造の保持】
+文体変換とは「丁寧さ・語尾・書記素」のみを変えること。以下は絶対に変えない：
+
+1. 行為主体（誰がするのか） — 「作ってもらう」(相手が作る)を「作らせてもらう」(自分が作る)にしない
+2. 受益者（誰が恩恵を受けるか） — 「フィードバックもらえると」(自分が受益)を「フィードバックするので」(相手が受益)にしない
+3. 発話行為の類型 — 依頼は依頼のまま、情報提供は情報提供のまま変換する。「目指してるんだけど」(情報提供)を「面白そう」(評価)にしない
+
+【禁止変換パターン】
+NG: 「フィードバックもらえると嬉しい」→「フィードバックするので教えてもらえると」
+OK: 「フィードバックもらえると嬉しい」→「フィードバックもらえるとうれしいな」
+
+NG: 「作ってもらえると助かる」→「作らせてもらえると助かります」
+OK: 「作ってもらえると助かる」→「作ってもらえたら助かる〜」
+
+【授受表現のカジュアル化ルール】
+てもらえると嬉しい → もらえるとうれしいな / もらえると...！
+てもらえると助かる → もらえたら助かる〜 / もらえると、、！
+てほしい → てほしいな / てくれると...！
+※「させてもらう」への変換は方向性反転のため禁止
+
 - 引用・URL・コード・固有名詞は改変しない
 
 【フォーマット】
@@ -50,8 +66,7 @@ const CASUAL_PROMPT = `
 - 絵文字は文末に控えめに置く（🙏 🙇‍♂️ w ww など）
 - 長い文は「！」で区切って畳み掛ける
 - 笑いは「w」で表現する
-- 依頼や提案は「〜もらえると！」「〜もらえると、、！」で柔らかく締める
-- 断定より示唆で終わらせる
+- 依頼文は原文の方向性（誰が誰に頼んでいるか）を保持したまま語尾だけカジュアルにする
 
 【変換例】
 
@@ -67,8 +82,8 @@ AIに出力させたドキュメントを精査せずに置いているだけだ
 今日明日でLPの内容も合わせてブラッシュアップするから、今はこのドキュメントが正だと思ってほしい。
 出力：BulkTrackのコアコンセプト、前話した時よりもAIに寄せたくなったから
 ドキュメントブラッシュアップした！
-イメージつきづらい部分とかあればいつでも質問してくれれば答えられるので教えてもらえると！
-今日明日でLPの内容も合わせてブラッシュアップするから、今はこのドキュメントが正と思ってもらえると！
+イメージつきづらい部分とかあればいつでも質問してもらえれば答えられるで！
+今日明日でLPの内容も合わせてブラッシュアップするから、今はこのドキュメントが正だと思ってほしいな！
 
 入力：今回LPを作るのに1時間で完了したから、TKさんの個人サイトと屋号サイトの件はいつでも言ってほしい。
 デプロイだけなら10分でできそうで、問い合わせを入れても30分くらいでできると思う。
@@ -99,7 +114,13 @@ AIに出力させたドキュメントを精査せずに置いているだけだ
 - 「〜してもらえれば！」
 - 「〜お願いします🙏🏻」
 - 「〜いただけると！」
-- 「〜助かります！」`;
+- 「〜助かります！」
+
+【最終確認（出力直前に必ず検証）】
+- 各文の「誰が」「誰に」依頼しているかが原文と同じか
+- 「てもらう」が「させてもらう」に変わっていないか
+- 原文にない感想・評価を追加していないか
+- 話者の行為意図が聞き手への感想に変わっていないか`;
 
 const FORMAL_PROMPT = `
 【文体の特徴】
@@ -108,7 +129,7 @@ const FORMAL_PROMPT = `
 - 絵文字は🙏程度に控える（原則1個まで）
 - 「！」は使うが「、、？」「...！」は控える
 - 強調は「本当に」「非常に」「すごく」を使う
-- 依頼は「〜いただけると助かります！」「〜お願いいたします🙏」で締める
+- 依頼文の方向性はそのまま保持しつつ、語尾を自然にする
 
 【変換例】
 
@@ -133,10 +154,55 @@ const FORMAL_PROMPT = `
 - 「〜いただけると助かります！」
 - 「〜お願いいたします🙏」
 - 「〜していただけますと！」
-- 「〜幸いです！」`;
+- 「〜幸いです！」
+
+【最終確認（出力直前に必ず検証）】
+- 各文の「誰が」「誰に」依頼しているかが原文と同じか
+- 「てもらう」が「させてもらう」に変わっていないか
+- 原文にない感想・評価を追加していないか
+- 話者の行為意図が聞き手への感想に変わっていないか`;
 
 function buildSystemPrompt(mode: ToneMode): string {
   return COMMON_PROMPT + (mode === "formal" ? FORMAL_PROMPT : CASUAL_PROMPT);
+}
+
+function hasDirectionFlipRisk(input: string, output: string): boolean {
+  const inputHasSaseteMorau = /させてもら/.test(input);
+  const outputHasSaseteMorau = /させてもら/.test(output);
+  const inputHasTemorau = /てもら|て貰|いただ/.test(input);
+
+  // 元にない「させてもらう」が出現
+  if (!inputHasSaseteMorau && inputHasTemorau && outputHasSaseteMorau)
+    return true;
+  // 「してほしい/してもらう」が「するので」に変化
+  if (
+    /(してほしい|してもら|いただけると)/.test(input) &&
+    /(するので|しますので)/.test(output)
+  )
+    return true;
+
+  return false;
+}
+
+async function callConvert(
+  client: Anthropic,
+  systemPrompt: string,
+  text: string,
+  temperature: number
+): Promise<string> {
+  const response = await client.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 1024,
+    temperature,
+    system: systemPrompt,
+    messages: [{ role: "user", content: text }],
+  });
+
+  const content = response.content[0];
+  if (content.type === "text") {
+    return content.text;
+  }
+  throw new Error("Unexpected response type from Claude API");
 }
 
 export async function convertStyle(
@@ -146,22 +212,12 @@ export async function convertStyle(
   const mode = detectToneMode(text);
   const systemPrompt = buildSystemPrompt(mode);
 
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 1024,
-    system: systemPrompt,
-    messages: [
-      {
-        role: "user",
-        content: text,
-      },
-    ],
-  });
+  const result = await callConvert(client, systemPrompt, text, 0.1);
 
-  const content = response.content[0];
-  if (content.type === "text") {
-    return content.text;
+  // 反転検知時は temperature: 0.0 で再試行
+  if (hasDirectionFlipRisk(text, result)) {
+    return callConvert(client, systemPrompt, text, 0.0);
   }
 
-  throw new Error("Unexpected response type from Claude API");
+  return result;
 }
