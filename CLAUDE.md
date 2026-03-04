@@ -61,6 +61,14 @@ GitHub Projectsのタスクを対話的にCRUD操作するコマンド。
 | `/blog-publish <記事タイトル>` | 下書き記事を公開 |
 | `/blog-analyze` | 公開後分析（GSC設定後に本格稼働） |
 
+## フック（自動化）
+
+### SessionEnd
+セッション終了時に `scripts/session-end.sh` が自動実行される。
+- トランスクリプトからメタデータ（使用ツール、変更ファイル）を抽出
+- バックグラウンドで haiku による要約を生成
+- `knowledge/sessions/YYYY-MM-DD-<session_id>.md` に保存
+
 ## ディレクトリ構成
 
 ```
@@ -86,11 +94,14 @@ workspace/
 │       ├── harness-init/   # ハーネス初期構築
 │       ├── harness-check/  # スモークテスト＋構造チェック
 │       └── harness-strengthen/ # ハーネス強化
+├── knowledge/
+│   └── sessions/           # セッションサマリー（Git管理外）
 ├── credentials/            # 認証情報（Git管理外）
 │   ├── oauth-credentials.json
 │   └── service-account.json
 └── scripts/
-    └── discord-notify.mjs  # Discord通知
+    ├── discord-notify.mjs  # Discord通知
+    └── session-end.sh      # SessionEndフック用スクリプト
 ```
 
 ## 注意事項
