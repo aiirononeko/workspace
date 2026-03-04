@@ -47,8 +47,8 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
   return Number.isInteger(n) && n > 0 ? n : fallback;
 }
 
-// Detect workspace root (two levels up from this file's directory)
-const defaultWorkspaceDir = resolve(__dirname, "../../../..");
+// Detect workspace root (three levels up: src -> discord-bot -> mvp -> workspace)
+const defaultWorkspaceDir = resolve(__dirname, "../../..");
 
 // Merge: process.env < bot .env
 const botEnv = parseEnvFile(resolve(__dirname, "../.env"));
