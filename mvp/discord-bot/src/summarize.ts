@@ -135,6 +135,17 @@ async function summarizeHtml(html: string, url: string): Promise<string> {
   return runClaude(prompt, { system: SYSTEM_PROMPT });
 }
 
+export async function fetchUrlContent(url: string): Promise<string> {
+  const html = await fetchHtml(url);
+  const text = extractText(html);
+  const title = extractTitle(html);
+  if (!text || text.length < 10) {
+    throw new Error("ページからテキストを抽出できませんでした。");
+  }
+  const header = title ? `タイトル: ${title}\nURL: ${url}` : `URL: ${url}`;
+  return `${header}\n\n${text}`;
+}
+
 export async function fetchAndSummarize(url: string): Promise<string> {
   const html = await fetchHtml(url);
   return summarizeHtml(html, url);

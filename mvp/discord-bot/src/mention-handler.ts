@@ -9,12 +9,14 @@ import { buildSystemPromptWithMemory } from "./prompt-builder";
 import { extractAndUpdateMemory } from "./memory-extractor";
 import { executeImplementation, isExecutionBusy } from "./agent-executor";
 import { reportProgressToThread } from "./progress-reporter";
+import { URL_REGEX, validateUrl, fetchUrlContent } from "./summarize";
 
 const TEXT_EXTENSIONS = new Set([
   ".txt", ".json", ".csv", ".md", ".log", ".xml",
   ".yaml", ".yml", ".toml", ".ts", ".js", ".py", ".html", ".css",
 ]);
 const MAX_ATTACHMENT_SIZE = 512 * 1024; // 512KB
+const MAX_URL_FETCH = 3;
 
 async function extractAttachmentTexts(msg: Message): Promise<string[]> {
   const results: string[] = [];
@@ -45,6 +47,32 @@ async function extractAttachmentTexts(msg: Message): Promise<string[]> {
     }
   }
   return results;
+}
+
+async function extractUrlContents(text: string): Promise<string[]> {
+  const urls = text.match(URL_REGEX);
+  if (!urls) return [];
+
+  const unique = Array.from(new Set(urls as string[]))
+    .filter((u) => {
+      // Discord CDN URLやメンションURLは除外
+      if (u.includes("cdn.discordapp.com") || u.includes("discord.com")) return false;
+      return validateUrl(u).valid;
+    })
+    .slice(0, MAX_URL_FETCH);
+
+  if (unique.length === 0) return [];
+
+  const settled = await Promise.allSettled(
+    unique.map(async (url) => {
+      console.log(`[mention-handler] Fetching URL content: ${url}`);
+      return fetchUrlContent(url);
+    }),
+  );
+
+  return settled
+    .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
+    .map((r) => r.value);
 }
 
 /** Bot が作成したスレッドの ID を記憶する（タイムスタンプ付きで期限切れ処理） */
@@ -159,7 +187,15 @@ async function replyInThread(
   if (messages.length === 0) {
     const text = triggerMessage.content.replace(/<@!?\d+>/g, "").trim();
     const attachmentTexts = await extractAttachmentTexts(triggerMessage);
-    const combined = [text, ...attachmentTexts].filter(Boolean).join("\n\n");
+    const urlContents = await extractUrlContents(text);
+    const parts = [text, ...attachmentTexts];
+    if (urlContents.length > 0) {
+      parts.push(
+        "---\n以下はメッセージ内のURLから取得したコンテンツです:\n\n" +
+          urlContents.map((c) => `<url-content>\n${c}\n</url-content>`).join("\n\n"),
+      );
+    }
+    const combined = parts.filter(Boolean).join("\n\n");
     if (combined) {
       messages = [{ role: "user" as const, content: combined }];
     }
@@ -260,17 +296,26 @@ async function fetchThreadHistory(
       .replace(/<@!?\d+>/g, "")
       .trim();
 
-    // トリガーメッセージのみファイル全文展開、過去メッセージはファイル名のみ
+    // トリガーメッセージのみファイル全文展開+URL取得、過去メッセージはファイル名のみ
     let attachmentInfo: string[];
+    let urlContents: string[] = [];
     if (msg.id === triggerMessageId) {
       attachmentInfo = await extractAttachmentTexts(msg);
+      urlContents = await extractUrlContents(text);
     } else {
       attachmentInfo = [...msg.attachments.values()]
         .filter((a) => a.name)
         .map((a) => `[添付ファイル: ${a.name}]`);
     }
 
-    const combined = [text, ...attachmentInfo].filter(Boolean).join("\n\n");
+    const parts = [text, ...attachmentInfo];
+    if (urlContents.length > 0) {
+      parts.push(
+        "---\n以下はメッセージ内のURLから取得したコンテンツです:\n\n" +
+          urlContents.map((c) => `<url-content>\n${c}\n</url-content>`).join("\n\n"),
+      );
+    }
+    const combined = parts.filter(Boolean).join("\n\n");
     if (!combined) continue;
 
     // Anthropic API は同じ role が連続する場合マージが必要
