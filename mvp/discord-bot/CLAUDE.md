@@ -86,6 +86,31 @@ src/
 - ナレッジ分析には必ず `relevant` 判定を含めること（エンジニアリング・ビジネス・自己成長に無関係なコンテンツは提案しない）
 - `relevant: false` のコンテンツにはボタン表示をスキップすること
 
+### 通知Job（jobs/notifier/providers）
+
+Bot本体とは独立したエントリポイント。Discord Webhook経由で送信。
+
+```
+src/
+├── jobs/
+│   ├── daily-briefing.ts    # 朝通知（GitHub Tasks + Calendar + Sheets）
+│   └── release-watch.ts     # RSS監視（AI企業ブログ → 翻訳要約 → 送信）
+├── notifier/
+│   ├── webhook.ts           # Discord Webhook送信
+│   └── job-store.ts         # SQLite: 実行ログ・既読管理
+└── providers/
+    ├── github-tasks.ts      # gh CLIでタスク取得
+    ├── google-calendar.ts   # googleapis でカレンダー取得
+    ├── google-sheets.ts     # googleapis でシフト取得
+    └── rss-feeds.ts         # RSSフィード取得・パース
+```
+
+#### 依存ルール
+
+- `jobs/`, `notifier/`, `providers/` はBot本体（`config.ts`, `claude.ts`等）をimportしない
+- 環境変数は `process.env` から直接読む（Bot本体の `config.ts` を経由しない）
+- `job-store.ts` はBot本体の `memory.ts` とDBファイルを共有しない（`jobs.db`は独立）
+
 ### 禁止事項
 
 - `commands/` 配下のファイル同士の相互import
@@ -100,3 +125,4 @@ src/
 - `agent-executor.ts` から `personality.ts` をimportすること（構造化実行タスク）
 - `agent-executor.ts` から `claude.ts` をimportすること（Agent SDKを直接使用）
 - `progress-reporter.ts` から `config.ts` や `claude.ts` をimportすること（リーフ依存）
+- `jobs/`, `notifier/`, `providers/` からBot本体のモジュール（`config.ts`, `claude.ts`, `guard.ts`等）をimportすること

@@ -48,6 +48,15 @@ for f in src/*.ts src/commands/*.ts; do
   run_test "${name}の構文が正しい" bun build --target=bun "$f"
 done
 
+# --- 通知Job構文チェック ---
+echo "📬 Notification Jobs"
+for f in src/jobs/*.ts src/notifier/*.ts src/providers/*.ts; do
+  if [ -f "$f" ]; then
+    name="${f#src/}"
+    run_test "${name}の構文が正しい" bun build --target=bun "$f"
+  fi
+done
+
 # --- 人格プロンプト ---
 echo "🎭 Personality"
 if [ -f src/personality.ts ]; then

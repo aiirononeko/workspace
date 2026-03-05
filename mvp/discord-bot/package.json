@@ -4,12 +4,16 @@
   "private": true,
   "scripts": {
     "start": "bun run src/index.ts",
-    "dev": "bun --watch run src/index.ts"
+    "dev": "bun --watch run src/index.ts",
+    "job:daily-briefing": "bun run src/jobs/daily-briefing.ts",
+    "job:release-watch": "bun run src/jobs/release-watch.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.0",
     "@anthropic-ai/sdk": "^0.52.0",
-    "discord.js": "^14.18.0"
+    "discord.js": "^14.18.0",
+    "googleapis": "^171.4.0",
+    "rss-parser": "^3.13.0"
   },
   "devDependencies": {
     "@types/bun": "latest",

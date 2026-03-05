@@ -88,13 +88,25 @@ if [ -f src/agent-executor.ts ]; then
     grep -E 'from\s+"\./personality' src/agent-executor.ts
 fi
 
+# --- 通知Job境界ルール ---
+echo "📬 Notification Job Boundary Rules"
+
+# jobs/notifier/providers からBot本体モジュールをimportしない
+for dir in src/jobs src/notifier src/providers; do
+  if [ -d "$dir" ]; then
+    check_no_match "${dir}/がBot本体モジュールをimportしない" \
+      grep -rE 'from\s+"\.\.\/(config|claude|guard|personality|summarize|bookmark|button|knowledge|index|mention|memory|memory-extractor|prompt-builder|agent-executor|progress-reporter)' "$dir/"
+  fi
+done
+
 # --- 環境変数の直接参照禁止（config.ts以外） ---
 echo "🔒 Environment Variable Rules"
 
-if grep -rn "process\.env" src/ --include="*.ts" -l 2>/dev/null | grep -v "src/config.ts" > /dev/null 2>&1; then
-  check_fail "config.ts以外でprocess.envを直接参照しない"
+# jobs/notifier/providers は process.env 直接参照OK（Bot本体のconfig.tsに依存しない設計）
+if grep -rn "process\.env" src/ --include="*.ts" -l 2>/dev/null | grep -v "src/config.ts" | grep -v "src/jobs/" | grep -v "src/notifier/" | grep -v "src/providers/" > /dev/null 2>&1; then
+  check_fail "Bot本体でconfig.ts以外のprocess.env直接参照がない"
 else
-  check_pass "config.ts以外でprocess.envを直接参照しない"
+  check_pass "Bot本体でconfig.ts以外のprocess.env直接参照がない"
 fi
 
 # --- 人格プロンプト境界ルール ---
