@@ -5,12 +5,13 @@ import { data as taskCommand, execute as taskExecute } from "./commands/task";
 import { data as summarizeCommand, execute as summarizeExecute } from "./commands/summarize";
 import { data as saveCommand, execute as saveExecute } from "./commands/save";
 import { data as memoryCommand, execute as memoryExecute } from "./commands/memory";
+import { data as reviewCommand, execute as reviewExecute } from "./commands/review";
 import { handleBookmarkMessage, handleBookmarkMessageUpdate } from "./bookmark-watcher";
 import { handleObsidianButton, handleSkillDraftButton } from "./button-handler";
 import { handleMention } from "./mention-handler";
 import { initMemoryDb } from "./memory";
 
-const commands = [askCommand, taskCommand, summarizeCommand, saveCommand, memoryCommand];
+const commands = [askCommand, taskCommand, summarizeCommand, saveCommand, memoryCommand, reviewCommand];
 
 const handlers: Record<string, (interaction: ChatInputCommandInteraction) => Promise<void>> = {
   ask: askExecute,
@@ -18,6 +19,7 @@ const handlers: Record<string, (interaction: ChatInputCommandInteraction) => Pro
   summarize: summarizeExecute,
   save: saveExecute,
   memory: memoryExecute,
+  review: reviewExecute,
 };
 
 const client = new Client({

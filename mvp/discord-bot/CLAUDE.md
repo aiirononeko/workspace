@@ -39,6 +39,7 @@ src/
 └── commands/             # スラッシュコマンド
     ├── ask.ts
     ├── memory.ts
+    ├── review.ts
     ├── save.ts
     ├── summarize.ts
     └── task.ts
