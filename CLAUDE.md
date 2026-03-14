@@ -1,15 +1,10 @@
-# Workspace 母艦
+# Workspace
 
-このワークスペースは、個人タスク管理のハブとして機能する「母艦」です。
+個人タスク管理の Claude Code ワークスペース。MCP経由で外部サービスと連携する。
 
-## 概要
-
-- **能動的操作**: Claude Codeで `/today` コマンドを使ってタスク確認・更新
-- **受動的通知**: Discord Webhookで状態確認・リマインダーを受信
+主要な開発は [ikkun](https://github.com/aiirononeko/ikkun)（秘書エージェント Discord Bot）に移行済み。
 
 ## 連携サービス（MCP）
-
-このワークスペースはMCP（Model Context Protocol）を使用して外部サービスと連携します。
 
 | サービス | MCP Server | 認証方式 | 機能 |
 |----------|------------|----------|------|
@@ -31,44 +26,6 @@
 - `MICROCMS_SERVICE_ID` - microCMSサービスID
 - `MICROCMS_API_KEY` - microCMS APIキー
 
-## カスタムコマンド
-
-### /today
-GitHub Projects + Google Calendar + Google Sheetsを使って今日のタスク・予定・シフトを取得し一覧表示。対話形式で操作可能。
-
-### /github-task
-GitHub Projectsのタスクを対話的にCRUD操作するコマンド。
-
-### ハーネスエンジニアリングコマンド
-
-| コマンド | 用途 |
-|---------|------|
-| `/harness-init <プロジェクトパス>` | 対象プロジェクトにハーネス基盤を構築（DoD, スモークテスト, 構造チェック） |
-| `/harness-check <プロジェクトパス>` | スモークテスト＋構造チェック実行。失敗時は自動修正 or 強化提案 |
-| `/harness-strengthen <プロジェクトパス>` | 失敗をシグナルにハーネスを恒久的に強化 |
-
-### ブログ運営コマンド
-
-| コマンド | 用途 |
-|---------|------|
-| `/blog-research <トピック>` | キーワード調査・競合分析 |
-| `/blog-outline <キーワード>` | SEO最適化された記事構成を生成 |
-| `/blog-draft <構成の説明>` | microCMSに下書き記事を作成 |
-| `/blog-humanize <記事タイトル>` | AI臭除去 & カタダ文体変換 |
-| `/blog-polish <記事タイトル>` | ユーザー執筆記事の校正・清書 |
-| `/blog-write <テーマ>` | 体験ベースの記事作成（ヒアリング→骨格投稿→ユーザー執筆→校正→チームレビュー） |
-| `/blog-review <記事タイトル>` | 4人の専門家エージェントによるチームレビュー（100点満点） |
-| `/blog-publish <記事タイトル>` | 下書き記事を公開 |
-| `/blog-analyze` | 公開後分析（GSC設定後に本格稼働） |
-
-## フック（自動化）
-
-### SessionEnd
-セッション終了時に `scripts/session-end.sh` が自動実行される。
-- トランスクリプトからメタデータ（使用ツール、変更ファイル）を抽出
-- バックグラウンドで haiku による要約を生成
-- `knowledge/sessions/YYYY-MM-DD-<session_id>.md` に保存
-
 ## ディレクトリ構成
 
 ```
@@ -78,30 +35,10 @@ workspace/
 ├── .mcp.json               # MCP設定（Git管理）
 ├── .env                    # 環境変数（Git管理外）
 ├── .envrc                  # direnv設定（Git管理外）
-├── .claude/
-│   ├── commands/today.md   # /todayコマンド（レガシー）
-│   └── skills/             # Skillベースのコマンド群
-│       ├── today/          # 今日の状況確認
-│       ├── github-task/    # GitHub Projectsタスク操作
-│       ├── blog-research/  # キーワード調査
-│       ├── blog-outline/   # 記事構成
-│       ├── blog-draft/     # ドラフト作成（→microCMS）
-│       ├── blog-write/     # 体験ベース記事作成
-│       ├── blog-polish/    # 校正・清書
-│       ├── blog-review/    # チームレビュー
-│       ├── blog-publish/   # 記事公開
-│       ├── blog-analyze/   # 公開後分析（placeholder）
-│       ├── harness-init/   # ハーネス初期構築
-│       ├── harness-check/  # スモークテスト＋構造チェック
-│       └── harness-strengthen/ # ハーネス強化
-├── knowledge/
-│   └── sessions/           # セッションサマリー（Git管理外）
 ├── credentials/            # 認証情報（Git管理外）
 │   ├── oauth-credentials.json
 │   └── service-account.json
-└── scripts/
-    ├── discord-notify.mjs  # Discord通知
-    └── session-end.sh      # SessionEndフック用スクリプト
+└── package.json
 ```
 
 ## 注意事項

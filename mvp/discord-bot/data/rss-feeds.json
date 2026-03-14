@@ -1,6 +1,0 @@
-[
-  { "name": "Anthropic", "url": "https://www.anthropic.com/rss.xml", "lang": "en" },
-  { "name": "OpenAI", "url": "https://openai.com/blog/rss.xml", "lang": "en" },
-  { "name": "Google DeepMind", "url": "https://deepmind.google/blog/rss.xml", "lang": "en" },
-  { "name": "Meta AI", "url": "https://ai.meta.com/blog/rss/", "lang": "en" }
-]
